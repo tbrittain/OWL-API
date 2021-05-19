@@ -1,0 +1,35 @@
+version: '3.8'
+services:
+    owl-api:
+        container_name: owl-api
+        build: .
+        ports:
+            - "4000:4000"
+        volumes:
+            - ./:/app
+        depends_on: 
+            - db
+    db:
+        container_name: owl-pg
+        image: postgres
+        restart: always
+        environment:
+            POSTGRES_USER: root
+            POSTGRES_PASSWORD: root
+        ports:
+            - "8001:5432"
+        volumes: 
+            - pgdata:/var/lib/postgresql/data
+    pgadmin:
+        container_name: owl-pgadmin4
+        image: dpage/pgadmin4
+        restart: always
+        environment:
+            PGADMIN_DEFAULT_EMAIL: admin@admin.com
+            PGADMIN_DEFAULT_PASSWORD: root
+        ports:
+            - "5050:80"
+        depends_on: 
+            - db
+volumes: 
+    pgdata:

@@ -4,12 +4,15 @@
   "description": "RESTful API for querying data from the Overwatch League eSports results",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js",
+    "dev": "nodemon --watch app.js -L"
   },
   "author": "Trey Brittain",
   "license": "ISC",
   "dependencies": {
     "express": "^4.17.1",
+    "nodemon": "^2.0.7",
     "pg": "^8.6.0"
   }
 }
