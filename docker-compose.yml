@@ -9,6 +9,8 @@ services:
             - ./:/app
         depends_on: 
             - db
+        links:
+            - db
     db:
         container_name: owl-pg
         image: postgres
@@ -30,6 +32,8 @@ services:
         ports:
             - "5050:80"
         depends_on: 
+            - db
+        links: 
             - db
 volumes: 
     pgdata:
