@@ -35,5 +35,7 @@ services:
             - db
         links: 
             - db
+        logging: 
+            driver: none
 volumes: 
     pgdata:
