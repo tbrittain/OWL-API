@@ -26,6 +26,29 @@ const selectQuery = (queryName, columns, table, where = null,
         })
 }
 
-const conditionParse = (condition)
+const testArray = [
+    ['team', 'shanghai dragons'],
+    ['year', '2019', 'AND'],
+    ['map_type', 'payload', 'OR']
+]
+
+const conditionParse = (conditionArr) => {
+    let result = {};
+    let text = '', values = [];
+    conditionArr.forEach((element, index) => {
+        if (element.length === 3) {
+            text += ` ${element[2]} ${element[0]} = $${index+1}`;
+            values.push(element[1]);
+        } else if (element.length === 2) {
+            text += `${element[0]} = $${index+1}`;
+            values.push(element[1]);
+        }
+    });
+    result.text = text;
+    result.values = values;
+    return result;
+}
+
+// console.log(conditionParse(testArray));
 
 module.exports = { selectQuery };

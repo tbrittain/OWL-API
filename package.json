@@ -4,7 +4,7 @@
   "description": "RESTful API for querying data from the Overwatch League eSports results",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "xo",
     "start": "node app.js",
     "dev": "nodemon server.js -L"
   },
@@ -16,8 +16,5 @@
     "morgan": "^1.10.0",
     "nodemon": "^2.0.7",
     "pg": "^8.6.0"
-  },
-  "devDependencies": {
-    "xo": "^0.40.1"
   }
 }
