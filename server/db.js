@@ -31,10 +31,21 @@ const selectQuery = async (queryName, columns, distinct = false, table,
         query.values = values;
     }
 
+    if (groupby) {
+        queryText += ` GROUP BY ${groupby}`;
+    }
+
+    if (orderby) {
+        queryText += ` ORDER BY ${orderby}`;
+    }
+
+    if (limit) {
+        queryText += ` LIMIT ${limit}`;
+    }
+
     queryText += ';';
     query.text = queryText;
     
-    // console.log(query);
 
     return pool
         .query(query)
