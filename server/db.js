@@ -9,21 +9,39 @@ const pool = new Pool({
     port: 5432
 });
 
-const selectQuery = (queryName, columns, table, where = null, 
-    groupby = null, orderby = null, limit = null) => {
+const selectQuery = async (queryName, columns, distinct = false, table, 
+    condition = null, groupby = null, orderby = null, limit = null) => {
     const query = { name: queryName }
+    
+    let queryText;
 
-    let queryText = `SELECT ${columns} FROM ${table}`
+    if (distinct) {
+        queryText = `SELECT DISTINCT ${columns} FROM ${table}`
+    } else {
+        queryText = `SELECT ${columns} FROM ${table}`
+    }
+    
     let values;
 
-    if (where) {
-        
+    if (condition) {
+        const conditions = conditionParse(condition);
+        queryText += conditions.text;
+        values = conditions.values;
+
+        query.values = values;
     }
 
-    pool
-        .query(query, (err, res) => {
-            console.log(err, res)
+    queryText += ';';
+    query.text = queryText;
+    
+    // console.log(query);
+
+    return pool
+        .query(query)
+        .then(res => {
+            return res.rows;
         })
+        .catch(e => console.error(e.stack));
 }
 
 const testArray = [
@@ -40,7 +58,7 @@ const conditionParse = (conditionArr) => {
             text += ` ${element[2]} ${element[0]} = $${index+1}`;
             values.push(element[1]);
         } else if (element.length === 2) {
-            text += `${element[0]} = $${index+1}`;
+            text += ` WHERE ${element[0]} = $${index+1}`;
             values.push(element[1]);
         }
     });
