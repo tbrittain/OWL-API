@@ -55,22 +55,22 @@ const selectQuery = async (queryName, columns, distinct = false, table,
         .catch(e => console.error(e.stack));
 }
 
-const testArray = [
-    ['team', 'shanghai dragons'],
-    ['year', '2019', 'AND'],
-    ['map_type', 'payload', 'OR']
-]
 
 const conditionParse = (conditionArr) => {
     let result = {};
     let text = '', values = [];
     conditionArr.forEach((element, index) => {
         if (element.length === 3) {
-            text += ` ${element[2]} ${element[0]} = $${index+1}`;
+            // additional statements in conditional
+            text += ` ${element[2]} ${element[0]}$${index+1}`;
             values.push(element[1]);
         } else if (element.length === 2) {
-            text += ` WHERE ${element[0]} = $${index+1}`;
+            // first statement in conditional
+            text += ` WHERE ${element[0]}$${index+1}`;
             values.push(element[1]);
+        } else if (element.length === 1) {
+            // insertion of literal, not for use with variable values
+            text += element[0];
         }
     });
     result.text = text;
