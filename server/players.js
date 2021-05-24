@@ -32,6 +32,20 @@ const validatePlayer = async (req, res, next) => {
     }
 }
 
+const validateHero = async (req, res, next) => {
+    const { hero } = req.params;
+    let heroes = await selectQuery('hero-list', 'lower(hero)', true, 'player_stats',
+    [
+        [" WHERE hero != 'All Heroes'"]
+    ]);
+    heroes = heroes.map(element => Object.values(element)[0]);
+    if (heroes.includes(hero.toLowerCase())) {
+        next();
+    } else {
+        res.status(400).send('Invalid hero name (non-case sensitive. For a full list of heroes, request GET api/players/heroes');
+    }
+}
+
 playersRouter.get('/:player/matches', validatePlayer, async (req, res) => {
     const { player } = req.params;
 
@@ -59,13 +73,22 @@ playersRouter.get('/:player/matches', validatePlayer, async (req, res) => {
     }
 });
 
+playersRouter.get('/heroes', async (req, res) => {
+    let heroes = await selectQuery('hero-list', 'hero', true, 'player_stats',
+    [
+        [" WHERE hero != 'All Heroes'"]
+    ], null, 'hero');
+    heroes = heroes.map(element => Object.values(element)[0]);
+    res.send(heroes);
+})
+
 playersRouter.get('/:player/matches/heroes', validatePlayer, async (req, res) => {
     const { player } = req.params;
 
     if (!req.query.year) {
         const heroes = await selectQuery(`${player}-match-heroes`, 'match_id, ARRAY_AGG(DISTINCT hero) AS heroes', false, 
         'player_stats', [
-            ['player = ', player], 
+            ['lower(player) = ', player.toLowerCase()], 
             [" AND hero != 'All Heroes'"]
         ], 'match_id');
         if (heroes.length > 0) {
@@ -74,13 +97,36 @@ playersRouter.get('/:player/matches/heroes', validatePlayer, async (req, res) =>
     } else {
         const heroes = await selectQuery(`${player}-match-heroes`, 'match_id, ARRAY_AGG(DISTINCT hero) AS heroes', false, 
         'player_stats', [
-            ['player = ', player], 
+            ['lower(player) = ', player.toLowerCase()], 
             ['year = ', req.query.year, 'AND'],
             [" AND hero != 'All Heroes'"]
         ], 'match_id');
         if (heroes.length > 0) {
             res.send(heroes);
         }
+    }
+});
+
+playersRouter.get('/:player/:hero', validatePlayer, validateHero, async (req, res) => {
+    const { player, hero } = req.params;
+
+    if (!req.query.year) {
+        const heroAvgStats = await selectQuery(`${player}-${hero}-avg-stats`, 'stat_name, AVG(stat_amount) as player_average',
+        false, 'player_stats', 
+        [
+            ['lower(player) = ', player.toLowerCase()],
+            ['lower(hero) = ', hero, 'AND']
+        ], 'stat_name');
+        res.send(heroAvgStats);
+    } else {
+        const heroAvgStats = await selectQuery(`${player}-${hero}-avg-stats-${req.query.year}`, 'stat_name, AVG(stat_amount) as player_average',
+        false, 'player_stats', 
+        [
+            ['lower(player) = ', player.toLowerCase()],
+            ['lower(hero) = ', hero.toLowerCase(), 'AND'],
+            ['year = ', req.query.year, 'AND']
+        ], 'stat_name');
+        res.send(heroAvgStats);
     }
 });
 

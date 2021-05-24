@@ -46,6 +46,9 @@ const selectQuery = async (queryName, columns, distinct = false, table,
     queryText += ';';
     query.text = queryText;
     
+    // debugging queries
+    console.log(queryText);
+    console.log(values);
 
     return pool
         .query(query)
