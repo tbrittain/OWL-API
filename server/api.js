@@ -1,6 +1,22 @@
 const express = require('express');
 const apiRouter = express.Router();
 
+const validateYear = (req, res, next) => {
+    if (req.query.year) {
+        const years = [2018, 2019, 2020, 2021];
+        if (!years.includes(Number(req.query.year))) {
+            res.status(400).send('Invalid year provided. Valid years are from 2018 - 2021.');
+        } else {
+            // console.log('Valid year provided');
+            next();
+        }
+    } else {
+        next();
+    }
+}
+
+apiRouter.use(validateYear);
+
 const teamsRouter = require('./teams');
 apiRouter.use('/teams', teamsRouter);
 
