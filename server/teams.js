@@ -1,5 +1,5 @@
 const express = require('express');
-const teamsRouter = express.Router();
+const teamsRouter = express.Router({ mergeParams: true });
 const { selectQuery } = require('./db');
 
 

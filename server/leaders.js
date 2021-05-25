@@ -1,5 +1,5 @@
 const express = require('express');
-const leadersRouter = express.Router();
+const leadersRouter = express.Router({ mergeParams: true });
 const { selectQuery } = require('./db');
 
 leadersRouter.get('/matches', async (req, res) => {
@@ -14,7 +14,7 @@ leadersRouter.get('/matches', async (req, res) => {
         false, 'player_stats', 
         [
             ['year = ', req.query.year]
-        ], 'player = ', 'match_count DESC');
+        ], 'player', 'match_count DESC');
         
         if (matchLeaders.length > 0) {
             res.send(matchLeaders);
