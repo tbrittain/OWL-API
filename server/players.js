@@ -9,7 +9,7 @@ playersRouter.get('/', async (req, res) => {
             res.send(players.map(element => Object.values(element)[0]));
         }
     } else {
-        const players = await selectQuery(`player-list-${year}`, 'player', true, 'players_teams', 
+        const players = await selectQuery(`player-list-${req.query.year}`, 'player', true, 'players_teams', 
         [
             ['year = ', req.query.year]
         ], null, 'player ASC');
@@ -19,6 +19,9 @@ playersRouter.get('/', async (req, res) => {
         }
     }
 });
+
+// TODO: perhaps instead of a post method to update DB, create a helper program that takes an excel/csv file as input and
+// automatically updates the databases with recent match data
 
 const validatePlayer = async (req, res, next) => {
     const { player } = req.params;
@@ -32,7 +35,7 @@ const validatePlayer = async (req, res, next) => {
     }
 }
 
-const validateHero = async (req, res, next) => {
+const validateHeroParams = async (req, res, next) => {
     const { hero } = req.params;
     let heroes = await selectQuery('hero-list', 'lower(hero)', true, 'player_stats',
     [
@@ -46,7 +49,7 @@ const validateHero = async (req, res, next) => {
     }
 }
 
-validateMatchIds = async (req, res, next) => {
+const validateMatchIds = async (req, res, next) => {
     if (req.query.match_ids) {
         matchIds = req.query.match_ids.split(',');
         let existingMatchIds = await selectQuery('total-match-ids', 'match_id', true, 'player_stats');
@@ -55,17 +58,39 @@ validateMatchIds = async (req, res, next) => {
         let invalid = [];
         for (const matchId of matchIds) {
             if (!existingMatchIds.includes(Number(matchId))) {
-                console.log(`Invalid match ID provided: ${matchId}`)
+                // console.log(`Invalid match ID provided: ${matchId}`)
                 invalid.push(matchId);
             }
         }
-
         if (invalid.length > 0) {
             res.status(400).send(`Invalid match ID provided: ${invalid}`);
         } else {
             next();
         }
+    } else {
+        next();
+    }
+}
 
+const validateStatNamesQuery = async (req, res, next) => {
+    if (req.query.stat_names) {
+        const statNames = req.query.stat_names.split(',');
+        let existingStatNames = await selectQuery('total-stat-names', 'lower(stat_name)', true, 'player_stats');
+        existingStatNames = existingStatNames.map(element => Object.values(element)[0]);
+
+        // console.log(existingStatNames);
+        let invalid = [];
+        for (const statName of statNames) {
+            if (!existingStatNames.includes(statName.toLowerCase())) {
+                // console.log(`Invalid stat name provided: ${statName}`);
+                invalid.push(statName);
+            }
+        }
+        if (invalid.length > 0) {
+            res.status(400).send(`Invalid stat name provided: ${invalid}`);
+        } else {
+            next();
+        }
     } else {
         next();
     }
@@ -105,7 +130,7 @@ playersRouter.get('/heroes', async (req, res) => {
     ], null, 'hero');
     heroes = heroes.map(element => Object.values(element)[0]);
     res.send(heroes);
-})
+});
 
 playersRouter.get('/:player/matches/heroes', validatePlayer, async (req, res) => {
     const { player } = req.params;
@@ -143,42 +168,64 @@ playersRouter.get('/:player/heroes', validatePlayer, async (req, res) => {
     res.send(heroes);
 });
 
-playersRouter.get('/:player/heroes/:hero', validatePlayer, validateHero, validateMatchIds, async (req, res) => {
+playersRouter.get('/heroes/stat-names', async (req, res) => {
+    let statNames = await selectQuery('stat-names-by-hero', 'hero, ARRAY_AGG(DISTINCT stat_name) AS stat_names', true, 'player_stats',
+    null, 'hero');
+    res.send(statNames);
+});
+
+playersRouter.get('/:player/heroes/:hero', validatePlayer, validateHeroParams, validateMatchIds, validateStatNamesQuery, async (req, res) => {
     const { player, hero } = req.params;
-    // TODO: implement filtering by stat type
+
     let matchIds;
-    let statTypes;
+    let statNames;
+
+    if (req.query.stat_names) {
+        statNames = req.query.stat_names.split(',');
+        statNames = statNames.map(stat => stat.toLowerCase());
+    }
 
     if (req.query.match_ids) {
         matchIds = req.query.match_ids.split(',');
         const heroMatchStats = {}
         for (const matchId of matchIds) {
-            const matchStat = await selectQuery(`${player}-${hero}-stats-${matchId}`, 'stat_name, stat_amount', false,
+            let matchStat = await selectQuery(`${player}-${hero}-stats-${matchId}`, 'stat_name, stat_amount', false,
             'player_stats',
             [
                 ['lower(player) = ', player.toLowerCase()],
                 ['lower(hero) = ', hero.toLowerCase(), 'AND'],
                 ['match_id = ', matchId, 'AND']
             ]);
+            if (statNames) {
+                matchStat = matchStat.filter(element => {
+                    return statNames.includes(element.stat_name.toLowerCase())
+                });
+            }
             heroMatchStats[matchId] = matchStat;
         }
         res.send(heroMatchStats);
+        return;
     }
 
     if (!req.query.year) {
-        const heroAvgStats = await selectQuery(`${player}-${hero}-avg-stats`, 'stat_name, AVG(stat_amount) as player_average',
+        let heroAvgStats = await selectQuery(`${player}-${hero}-avg-stats`, 'stat_name, AVG(stat_amount) as player_average',
         false, 'player_stats', 
         [
             ['lower(player) = ', player.toLowerCase()],
             ['lower(hero) = ', hero.toLowerCase(), 'AND']
         ], 'stat_name');
         if (heroAvgStats.length > 0) {
+            if (statNames) {
+                heroAvgStats = heroAvgStats.filter(element => {
+                    return statNames.includes(element.stat_name.toLowerCase())
+                });
+            }
             res.send(heroAvgStats);
         } else {
             res.status(404).send(`${player} has not played any matches as ${hero}`)
         }
     } else {
-        const heroAvgStats = await selectQuery(`${player}-${hero}-avg-stats-${req.query.year}`, 'stat_name, AVG(stat_amount) as player_average',
+        let heroAvgStats = await selectQuery(`${player}-${hero}-avg-stats-${req.query.year}`, 'stat_name, AVG(stat_amount) as player_average',
         false, 'player_stats', 
         [
             ['lower(player) = ', player.toLowerCase()],
@@ -186,6 +233,11 @@ playersRouter.get('/:player/heroes/:hero', validatePlayer, validateHero, validat
             ['year = ', req.query.year, 'AND']
         ], 'stat_name');
         if (heroAvgStats.length > 0) {
+            if (statNames) {
+                heroAvgStats = heroAvgStats.filter(element => {
+                    return statNames.includes(element.stat_name.toLowerCase())
+                });
+            }
             res.send(heroAvgStats);
         } else {
             res.status(404).send(`${player} has not played any matches as ${hero}`)
@@ -193,6 +245,6 @@ playersRouter.get('/:player/heroes/:hero', validatePlayer, validateHero, validat
     }
 });
 
-
-
-module.exports = playersRouter;
+module.exports = { 
+    playersRouter: playersRouter,
+};

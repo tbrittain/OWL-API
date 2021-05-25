@@ -20,7 +20,7 @@ apiRouter.use(validateYear);
 const teamsRouter = require('./teams');
 apiRouter.use('/teams', teamsRouter);
 
-const playersRouter = require('./players');
+const { playersRouter } = require('./players');
 apiRouter.use('/players', playersRouter);
 
 const leadersRouter = require('./leaders');
