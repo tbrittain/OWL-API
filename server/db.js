@@ -1,90 +1,89 @@
-const { Pool } = require('pg');
-// hardcoded, could also use .env, and 
+const { Pool } = require('pg')
+// hardcoded, could also use .env, and
 // pool would automatically use it
 const pool = new Pool({
-    user: 'root',
-    host: 'db',
-    database: 'root',
-    password: 'root',
-    port: 5432
-});
+  user: 'root',
+  host: 'db',
+  database: 'root',
+  password: 'root',
+  port: 5432
+})
 
-const selectQuery = async (queryName, columns, distinct = false, table, 
-    condition = null, groupby = null, orderby = null, limit = null, having = null) => {
-    const query = { name: queryName }
-    
-    let queryText;
+const selectQuery = async (queryName, columns, distinct = false, table,
+  condition = null, groupby = null, orderby = null, limit = null, having = null) => {
+  const query = { name: queryName }
 
-    if (distinct) {
-        queryText = `SELECT DISTINCT ${columns} FROM ${table}`
-    } else {
-        queryText = `SELECT ${columns} FROM ${table}`
-    }
-    
-    let values;
+  let queryText
 
-    if (condition) {
-        const conditions = conditionParse(condition);
-        queryText += conditions.text;
-        values = conditions.values;
+  if (distinct) {
+    queryText = `SELECT DISTINCT ${columns} FROM ${table}`
+  } else {
+    queryText = `SELECT ${columns} FROM ${table}`
+  }
 
-        query.values = values;
-    }
+  let values
 
-    if (groupby) {
-        queryText += ` GROUP BY ${groupby}`;
-    }
+  if (condition) {
+    const conditions = conditionParse(condition)
+    queryText += conditions.text
+    values = conditions.values
 
-    if (having) {
-        queryText += ` HAVING ${having}`
-    }
+    query.values = values
+  }
 
-    if (orderby) {
-        queryText += ` ORDER BY ${orderby}`;
-    }
+  if (groupby) {
+    queryText += ` GROUP BY ${groupby}`
+  }
 
-    if (limit) {
-        queryText += ` LIMIT ${limit}`;
-    }
+  if (having) {
+    queryText += ` HAVING ${having}`
+  }
 
-    queryText += ';';
-    query.text = queryText;
+  if (orderby) {
+    queryText += ` ORDER BY ${orderby}`
+  }
 
-    // debugging queries
-    // console.log(queryText);
-    // console.log(values);
+  if (limit) {
+    queryText += ` LIMIT ${limit}`
+  }
 
-    return pool
-        .query(query)
-        .then(res => {
-            return res.rows;
-        })
-        .catch(e => console.error(e.stack));
+  queryText += ';'
+  query.text = queryText
+
+  // debugging queries
+  // console.log(queryText);
+  // console.log(values);
+
+  return pool
+    .query(query)
+    .then(res => {
+      return res.rows
+    })
+    .catch(e => console.error(e.stack))
 }
 
-
 const conditionParse = (conditionArr) => {
-    let result = {};
-    let text = '', values = [];
-    conditionArr.forEach((element, index) => {
-        if (element.length === 3) {
-            // additional statements in conditional
-            text += ` ${element[2]} ${element[0]}$${index+1}`;
-            values.push(element[1]);
-        } else if (element.length === 2) {
-            // first statement in conditional
-            text += ` WHERE ${element[0]}$${index+1}`;
-            values.push(element[1]);
-        } else if (element.length === 1) {
-            // insertion of literal, not for use with variable values
-            text += element[0];
-        }
-    });
-    result.text = text;
-    result.values = values;
-    return result;
+  const result = {}
+  let text = ''; const values = []
+  conditionArr.forEach((element, index) => {
+    if (element.length === 3) {
+      // additional statements in conditional
+      text += ` ${element[2]} ${element[0]}$${index + 1}`
+      values.push(element[1])
+    } else if (element.length === 2) {
+      // first statement in conditional
+      text += ` WHERE ${element[0]}$${index + 1}`
+      values.push(element[1])
+    } else if (element.length === 1) {
+      // insertion of literal, not for use with variable values
+      text += element[0]
+    }
+  })
+  result.text = text
+  result.values = values
+  return result
 }
 
 // console.log(conditionParse(testArray));
 
-module.exports = { selectQuery };
+module.exports = { selectQuery }
