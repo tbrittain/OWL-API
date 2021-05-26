@@ -10,7 +10,7 @@ const pool = new Pool({
 });
 
 const selectQuery = async (queryName, columns, distinct = false, table, 
-    condition = null, groupby = null, orderby = null, limit = null) => {
+    condition = null, groupby = null, orderby = null, limit = null, having = null) => {
     const query = { name: queryName }
     
     let queryText;
@@ -33,6 +33,10 @@ const selectQuery = async (queryName, columns, distinct = false, table,
 
     if (groupby) {
         queryText += ` GROUP BY ${groupby}`;
+    }
+
+    if (having) {
+        queryText += ` HAVING ${having}`
     }
 
     if (orderby) {

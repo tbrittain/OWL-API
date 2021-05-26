@@ -62,13 +62,20 @@ leadersRouter.get('/single-game/:statName', validateStatNamesParams, validateHer
     
     let resultLimit = 100;
 
-    if (req.query.limit && req.query.limit <= 100) {
-        try {
-            resultLimit = Number(req.query.limit);
-        } catch (e) {
-            console.log(error);
+    if (req.query.limit) {
+        if (req.query.limit <= 100) {
+            try {
+                resultLimit = Number(req.query.limit);
+            } catch (e) {
+                res.status(400).send(`Invalid result limit: ${req.query.limit}`)
+                return;
+            }
+        } else {
+            res.status(400).send(`Invalid result limit: ${req.query.limit}`)
+            return;
         }
     }
+
 
     const dataSort = (req.query.invert == "true") ? req.query.invert : false;
     const minMax = (dataSort) ? 'MIN' : 'MAX';
@@ -132,11 +139,17 @@ leadersRouter.get('/career-sum/:statName', validateStatNamesParams, validateHero
     
     let resultLimit = 100;
 
-    if (req.query.limit && req.query.limit <= 100) {
-        try {
-            resultLimit = Number(req.query.limit);
-        } catch (e) {
-            console.log(error);
+    if (req.query.limit) {
+        if (req.query.limit <= 100) {
+            try {
+                resultLimit = Number(req.query.limit);
+            } catch (e) {
+                res.status(400).send(`Invalid result limit: ${req.query.limit}`)
+                return;
+            }
+        } else {
+            res.status(400).send(`Invalid result limit: ${req.query.limit}`)
+            return;
         }
     }
 
@@ -199,18 +212,26 @@ leadersRouter.get('/career-avg/:statName', validateStatNamesParams, validateHero
     
     let resultLimit = 100;
 
-    if (req.query.limit && req.query.limit <= 100) {
+    if (req.query.limit) {
+        console.log('Checking result limit...')
         try {
             resultLimit = Number(req.query.limit);
         } catch (e) {
-            console.log(error);
+            res.status(400).send(`Invalid result limit: ${req.query.limit}`)
+            return;
         }
+        console.log('No error from typechecking limit, continuing...')
+        if (resultLimit > 100) {
+            res.status(400).send(`Invalid result limit: ${req.query.limit}`)
+            return;
+        }
+        console.log(`Limit check passed: limit = ${resultLimit}`)
     }
 
     const dataSort = (req.query.invert == "true") ? req.query.invert : false;
     const ascDesc = (dataSort) ? 'ASC' : 'DESC';
     
-    let minMatches;
+    let minMatches = 1;
     if (req.query.min_matches) {
         try {
             minMatches = Number(req.query.min_matches);
@@ -225,50 +246,61 @@ leadersRouter.get('/career-avg/:statName', validateStatNamesParams, validateHero
     if (!req.query.year) {
         // no hero query
         if (!req.query.hero) {
-            const leaders = await selectQuery(`career-sum-${resultLimit}-${statName.toLowerCase()}-sum`, `player, ARRAY_AGG(DISTINCT year) AS years, COUNT(match_id) AS num_matches, ARRAY_AGG(DISTINCT hero) AS heroes, SUM(stat_amount) AS stat_amount`,
-            false, 'player_stats',
+            const leaders = await selectQuery(`career-avg-${resultLimit}-${statName.toLowerCase()}-min-matches-${minMatches}`, 
+            `player, ARRAY_AGG(DISTINCT year) AS years, COUNT(match_id) AS num_matches, ARRAY_AGG(DISTINCT hero) AS heroes, 
+            AVG(stat_amount) AS stat_amount`, false, 'player_stats',
             [
                 ['lower(stat_name) = ', statName.toLowerCase()]
-            ], 'player', `SUM(stat_amount) ${ascDesc}`, resultLimit);
+            ], `player`, `AVG(stat_amount) ${ascDesc}`, resultLimit, `COUNT(match_id) >= ${minMatches}`);
             if (leaders.length > 0) {
                 res.send(leaders);
+            } else {
+                res.status(404).send('No results found')
             }
         // hero query present
         } else {
-            const leaders = await selectQuery(`career-sum-${resultLimit}-${req.query.hero}-${statName.toLowerCase()}-sum`, 'player, ARRAY_AGG(DISTINCT year) AS years, COUNT(match_id) AS num_matches, SUM(stat_amount) AS stat_amount',
+            const leaders = await selectQuery(`career-avg-${resultLimit}-${req.query.hero}-${statName.toLowerCase()}-min-matches-${minMatches}`, 
+            'player, ARRAY_AGG(DISTINCT year) AS years, COUNT(match_id) AS num_matches, AVG(stat_amount) AS stat_amount',
             false, 'player_stats',
             [
                 ['lower(stat_name) = ', statName.toLowerCase()],
                 ['lower(hero) = ', req.query.hero.toLowerCase(), 'AND']
-            ], 'player', `SUM(stat_amount) ${ascDesc}`, resultLimit);
+            ], `player`, `AVG(stat_amount) ${ascDesc}`, resultLimit, `COUNT(match_id) >= ${minMatches}`);
             if (leaders.length > 0) {
                 res.send(leaders);
+            } else {
+                res.status(404).send('No results found')
             }
         }
     // year query present
     } else {
         // no hero query
         if (!req.query.hero) {
-            const leaders = await selectQuery(`career-sum-${resultLimit}-${statName.toLowerCase()}-${req.query.year}-sum`, `player, ARRAY_AGG(DISTINCT hero) AS heroes, COUNT(match_id) AS num_matches, SUM(stat_amount) AS stat_amount`,
+            const leaders = await selectQuery(`career-avg-${resultLimit}-${statName.toLowerCase()}-${req.query.year}-min-matches-${minMatches}`, 
+            `player, ARRAY_AGG(DISTINCT hero) AS heroes, COUNT(match_id) AS num_matches, AVG(stat_amount) AS stat_amount`,
             false, 'player_stats',
             [
                 ['lower(stat_name) = ', statName.toLowerCase()],
                 ['year = ', req.query.year, 'AND']
-            ], 'player', `SUM(stat_amount) ${ascDesc}`, resultLimit);
+            ], `player`, `AVG(stat_amount) ${ascDesc}`, resultLimit, `COUNT(match_id) >= ${minMatches}`);
             if (leaders.length > 0) {
                 res.send(leaders);
+            } else {
+                res.status(404).send('No results found')
             }
         // hero query present
         } else {
-            const leaders = await selectQuery(`career-sum-${resultLimit}-${req.query.hero}-${statName.toLowerCase()}-${req.query.year}-sum`, 'player, COUNT(match_id) AS num_matches, SUM(stat_amount) AS stat_amount',
-            false, 'player_stats',
+            const leaders = await selectQuery(`career-avg-${resultLimit}-${req.query.hero}-${statName.toLowerCase()}-${req.query.year}-min-matches-${minMatches}`, 
+            'player, COUNT(match_id) AS num_matches, AVG(stat_amount) AS stat_amount', false, 'player_stats',
             [
                 ['lower(stat_name) = ', statName.toLowerCase()],
                 ['year = ', req.query.year, 'AND'],
                 ['lower(hero) = ', req.query.hero.toLowerCase(), 'AND']
-            ], 'player', `SUM(stat_amount) ${ascDesc}`, resultLimit);
+            ], `player`, `AVG(stat_amount) ${ascDesc}`, resultLimit, `COUNT(match_id) >= ${minMatches}`);
             if (leaders.length > 0) {
                 res.send(leaders);
+            } else {
+                res.status(404).send('No results found')
             }
         }
     }

@@ -29,4 +29,8 @@ apiRouter.use('/leaders', leadersRouter);
 const matchesRouter = require('./matches');
 apiRouter.use('/matches', matchesRouter);
 
+apiRouter.use(function (req, res, next) {
+    res.status(404).send('No results found')
+});
+
 module.exports = apiRouter;
