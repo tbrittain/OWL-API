@@ -1,11 +1,11 @@
 {
-  "name": "owl_api",
+  "name": "owl_api_rest",
   "version": "1.0.0",
-  "description": "RESTful API for querying data from the Overwatch League eSports results",
-  "main": "app.js",
+  "description": "REST API for querying data from the Overwatch League eSports results",
+  "main": "server.js",
   "scripts": {
     "test": "standard",
-    "start": "node app.js",
+    "start": "node server.js",
     "dev": "nodemon server.js -L"
   },
   "author": "Trey Brittain",

@@ -19,7 +19,7 @@ app.use(morgan('dev'))
 
 // mount apiRouter
 const apiRouter = require('./server/api')
-app.use('/api', apiRouter)
+app.use('/rest', apiRouter)
 
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}`)
