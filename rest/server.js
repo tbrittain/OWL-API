@@ -22,5 +22,5 @@ const apiRouter = require('./server/api')
 app.use('/rest', apiRouter)
 
 app.listen(port, () => {
-  console.log(`Server listening at http://localhost:${port}`)
+  console.log(`Rest API server listening at http://localhost:${port}/rest/`)
 })

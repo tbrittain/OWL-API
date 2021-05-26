@@ -12,6 +12,18 @@ services:
             - db
         links:
             - db
+    owl-graphql:
+        container_name: owl-graphql
+        build:
+            context: ./graphql
+        ports:
+            - "4001:4001"
+        volumes:
+            - ./graphql:/app
+        depends_on: 
+            - owl-api
+        links:
+            - owl-api
     db:
         container_name: owl-pg
         image: postgres
