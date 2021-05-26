@@ -45,7 +45,7 @@ const validateHeroParams = async (req, res, next) => {
     if (heroes.includes(hero.toLowerCase())) {
         next();
     } else {
-        res.status(400).send('Invalid hero name (non-case sensitive. For a full list of heroes, request GET api/players/heroes');
+        res.status(400).send('Invalid hero name (non-case sensitive). For a full list of heroes, request GET api/players/heroes');
     }
 }
 
