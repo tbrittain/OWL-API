@@ -52,22 +52,70 @@ matchesRouter.get('/', async (req, res) => {
 
 matchesRouter.get('/:matchId', validateMatchIdParams, async (req, res) => {
   const { matchId } = req.params
-  // not parameterizing the conditional statements in the subqueries, but this is ok since the middleware validates matchid
-  const results = await selectQuery(`${matchId}-match-results`,
-    'MAX(year) AS year, winner, ARRAY_AGG(DISTINCT teams) AS teams, ARRAY_AGG(DISTINCT map_name) AS maps',
+  let overallResults = await selectQuery(`${matchId}-match-results`,
+    'MAX(year) AS year, winner, ARRAY_AGG(DISTINCT teams) AS teams',
     false, `(SELECT year, match_winner AS winner, map_winner AS teams 
     FROM map_stats 
     WHERE match_id = ${matchId} 
     AND map_winner != 'draw'
     UNION 
-    SELECT year, match_winner AS winner, map_loser AS teams 
+    SELECT year, match_winner AS winner, map_loser AS teams
     FROM map_stats 
     WHERE match_id = ${matchId}
-    AND map_winner != 'draw') match_history, 
-    (SELECT DISTINCT map_name 
-    FROM map_stats 
-    WHERE match_id = ${matchId}) maps_played`, null, 'winner')
-  res.send(results)
+    AND map_winner != 'draw') match_history`, null, 'winner')
+  overallResults = overallResults[0]
+  const totalGameResults = await selectQuery(`rounds-match-id-${matchId}`, `game_number, map_name, map_winner, map_loser, map_type, map_round, attacker, defender, 
+  winning_team_final_map_score, losing_team_final_map_score, control_round_name, defender_payload_distance,
+  attacker_time_banked, defender_time_banked, attacker_control_perecent AS attacker_control_percent,
+  defender_control_perecent AS defender_control_percent, attacker_round_end_score, defender_round_end_score`, false,
+  'map_stats',
+  [
+    ['match_id = ', matchId]
+  ], null, 'game_number ASC, map_round ASC')
+  const formattedGames = {}
+  for (const game of totalGameResults) {
+    if (!Object.keys(formattedGames).includes(String(game.game_number))) {
+      formattedGames[game.game_number] = {
+        map_name: game.map_name,
+        map_winner: game.map_winner,
+        map_type: game.map_type,
+        rounds: {}
+      }
+    }
+    const mapRound = {
+      attacker: game.attacker,
+      defender: game.defender,
+      winning_team_final_map_score: game.winning_team_final_map_score,
+      losing_team_final_map_score: game.losing_team_final_map_score
+    }
+    if (game.map_type === 'payload') {
+      mapRound.defender_payload_distance = Number(game.defender_payload_distance)
+      mapRound.attacker_time_banked = Number(game.attacker_time_banked)
+      mapRound.defender_time_banked = Number(game.defender_time_banked)
+      mapRound.attacker_round_end_score = Number(game.attacker_round_end_score)
+      mapRound.defender_round_end_score = Number(game.defender_round_end_score)
+    } else if (game.map_type === 'control') {
+      mapRound.control_round_name = game.control_round_name
+      mapRound.attacker_control_percent = Number(game.attacker_control_percent)
+      mapRound.defender_control_percent = Number(game.defender_control_percent)
+      mapRound.attacker_round_end_score = Number(game.attacker_round_end_score)
+      mapRound.defender_round_end_score = Number(game.defender_round_end_score)
+    } else if (game.map_type === 'assault') {
+      mapRound.attacker_time_banked = Number(game.attacker_time_banked)
+      mapRound.defender_time_banked = Number(game.defender_time_banked)
+      mapRound.attacker_round_end_score = Number(game.attacker_round_end_score)
+      mapRound.defender_round_end_score = Number(game.defender_round_end_score)
+    } else if (game.map_type === 'hybrid') {
+      mapRound.defender_payload_distance = Number(game.defender_payload_distance)
+      mapRound.attacker_time_banked = Number(game.attacker_time_banked)
+      mapRound.defender_time_banked = Number(game.defender_time_banked)
+      mapRound.attacker_round_end_score = Number(game.attacker_round_end_score)
+      mapRound.defender_round_end_score = Number(game.defender_round_end_score)
+    }
+    formattedGames[game.game_number]['rounds'][game.map_round] = mapRound // eslint-disable-line
+  }
+  overallResults.games = formattedGames
+  res.send(overallResults)
 })
 
 module.exports = matchesRouter
