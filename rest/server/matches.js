@@ -53,13 +53,13 @@ matchesRouter.get('/', async (req, res) => {
 matchesRouter.get('/:matchId', validateMatchIdParams, async (req, res) => {
   const { matchId } = req.params
   let overallResults = await selectQuery(`${matchId}-match-results`,
-    'MAX(year) AS year, winner, ARRAY_AGG(DISTINCT teams) AS teams',
-    false, `(SELECT year, match_winner AS winner, map_winner AS teams 
+    'MAX(year) AS year, MAX(round_start_time) AS round_start_time, winner, ARRAY_AGG(DISTINCT teams) AS teams',
+    false, `(SELECT year, round_start_time, match_winner AS winner, map_winner AS teams 
     FROM map_stats 
     WHERE match_id = ${matchId} 
     AND map_winner != 'draw'
     UNION 
-    SELECT year, match_winner AS winner, map_loser AS teams
+    SELECT year, round_start_time, match_winner AS winner, map_loser AS teams
     FROM map_stats 
     WHERE match_id = ${matchId}
     AND map_winner != 'draw') match_history`, null, 'winner')
