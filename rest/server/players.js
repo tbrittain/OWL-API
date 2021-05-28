@@ -187,28 +187,36 @@ playersRouter.get('/:player/heroes/:hero', validatePlayer, validateHeroParams, v
 
   if (req.query.match_ids) {
     matchIds = req.query.match_ids.split(',')
-    const heroMatchStats = {}
+    let heroMatchStats = {}
     for (const matchId of matchIds) {
-      let matchStat = await selectQuery(`${player}-${hero}-stats-${matchId}`, 'stat_name, stat_amount', false,
+      let matchStat = await selectQuery(`${player}-${hero}-stats-${matchId}`, 'stat_name, ROUND(AVG(stat_amount), 2) AS match_average', false,
         'player_stats',
         [
           ['lower(player) = ', player.toLowerCase()],
           ['lower(hero) = ', hero.toLowerCase(), 'AND'],
           ['match_id = ', matchId, 'AND']
-        ])
+        ], 'stat_name')
       if (statNames) {
         matchStat = matchStat.filter(element => {
           return statNames.includes(element.stat_name.toLowerCase())
         })
       }
-      heroMatchStats[matchId] = matchStat
+      const formattedMatchStat = {}
+      for (const stat of matchStat) {
+        formattedMatchStat[stat.stat_name] = stat.match_average
+      }
+      if (matchIds.length === 1) {
+        heroMatchStats = formattedMatchStat
+      } else {
+        heroMatchStats[matchId] = formattedMatchStat
+      }
     }
     res.send(heroMatchStats)
     return
   }
 
   if (!req.query.year) {
-    let heroAvgStats = await selectQuery(`${player}-${hero}-avg-stats`, 'stat_name, AVG(stat_amount) as player_average',
+    let heroAvgStats = await selectQuery(`${player}-${hero}-avg-stats`, 'stat_name, ROUND(AVG(stat_amount), 2) as player_average',
       false, 'player_stats',
       [
         ['lower(player) = ', player.toLowerCase()],
@@ -220,12 +228,17 @@ playersRouter.get('/:player/heroes/:hero', validatePlayer, validateHeroParams, v
           return statNames.includes(element.stat_name.toLowerCase())
         })
       }
-      res.send(heroAvgStats)
+
+      const formattedMatchStat = {}
+      for (const stat of heroAvgStats) {
+        formattedMatchStat[stat.stat_name] = stat.player_average
+      }
+      res.send(formattedMatchStat)
     } else {
       res.status(404).send(`${player} has not played any matches as ${hero}`)
     }
   } else {
-    let heroAvgStats = await selectQuery(`${player}-${hero}-avg-stats-${req.query.year}`, 'stat_name, AVG(stat_amount) as player_average',
+    let heroAvgStats = await selectQuery(`${player}-${hero}-avg-stats-${req.query.year}`, 'stat_name, ROUND(AVG(stat_amount), 2) as player_average',
       false, 'player_stats',
       [
         ['lower(player) = ', player.toLowerCase()],
@@ -238,7 +251,12 @@ playersRouter.get('/:player/heroes/:hero', validatePlayer, validateHeroParams, v
           return statNames.includes(element.stat_name.toLowerCase())
         })
       }
-      res.send(heroAvgStats)
+
+      const formattedMatchStat = {}
+      for (const stat of heroAvgStats) {
+        formattedMatchStat[stat.stat_name] = stat.player_average
+      }
+      res.send(formattedMatchStat)
     } else {
       res.status(404).send(`${player} has not played any matches as ${hero}`)
     }
