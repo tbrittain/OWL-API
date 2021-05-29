@@ -1,29 +1,27 @@
-const express = require('express');
-const { graphqlHTTP } = require('express-graphql');
-const { buildSchema } = require('graphql');
- 
-const port = process.env.port || 4001
+const express = require('express')
+const { graphqlHTTP } = require('express-graphql')
+const { buildSchema } = require('graphql')
+const cors = require('cors')
 
-// Construct a schema, using GraphQL schema language
-const schema = buildSchema(`
-  type Query {
-    hello: String
-  }
-`);
+const { schema } = require('./server/index')
+
+const port = process.env.port || 4001
  
-// The root provides a resolver function for each API endpoint
-const root = {
-  hello: () => {
-    return 'Hello world!';
-  },
-};
- 
-const app = express();
+const app = express()
+
+// handle CORS requests from index.html
+app.use(cors())
+
+// body parsing
+app.use(express.urlencoded({ extended: true }))
+app.use(express.json())
+
+
 app.use('/graphql', graphqlHTTP({
   schema: schema,
-  rootValue: root,
-  graphiql: true,
-}));
+  graphiql: true
+}))
+
 app.listen(port, () => {
   console.log(`GraphQL API server listening at http://localhost:${port}/graphql/`)
 })
