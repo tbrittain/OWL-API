@@ -9,8 +9,17 @@ const pool = new Pool({
   port: 5432
 })
 
-const selectQuery = async (queryName, columns, distinct = false, table,
-  condition = null, groupby = null, orderby = null, limit = null, having = null) => {
+const selectQuery = async (
+  queryName,
+  columns,
+  distinct = false,
+  table,
+  condition = null,
+  groupby = null,
+  orderby = null,
+  limit = null,
+  having = null
+) => {
   const query = { name: queryName }
 
   let queryText
@@ -56,15 +65,16 @@ const selectQuery = async (queryName, columns, distinct = false, table,
 
   return pool
     .query(query)
-    .then(res => {
+    .then((res) => {
       return res.rows
     })
-    .catch(e => console.error(e.stack))
+    .catch((e) => console.error(e.stack))
 }
 
 const conditionParse = (conditionArr) => {
   const result = {}
-  let text = ''; const values = []
+  let text = ''
+  const values = []
   conditionArr.forEach((element, index) => {
     if (element.length === 3) {
       // additional statements in conditional

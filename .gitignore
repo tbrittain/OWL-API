@@ -21,6 +21,8 @@
 commands.txt
 endpoints.txt
 .env
+.prettierrc.json
+.prettierignore
 
 npm-debug.log*
 yarn-debug.log*

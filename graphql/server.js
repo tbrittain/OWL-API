@@ -25,3 +25,7 @@ app.use('/graphql', graphqlHTTP({
 app.listen(port, () => {
   console.log(`GraphQL API server listening at http://localhost:${port}/graphql/`)
 })
+
+// TODO: https://graphql.org/blog/rest-api-graphql-wrapper/
+// https://www.youtube.com/watch?v=UBGzsb2UkeY&t=902s
+// https://github.com/aichbauer/express-graphql-boilerplate/tree/master/api
