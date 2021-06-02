@@ -3,11 +3,14 @@
 # dependencies
 /rest/node_modules
 /graphql/node_modules
+/dbUpdate/venv
+/dbUpdate/.idea
 /.pnp
 .pnp.js
 
 # testing
 /coverage
+/dbUpdate/.pytest_cache
 
 # production
 /build
@@ -18,11 +21,12 @@
 .env.development.local
 .env.test.local
 .env.production.local
-commands.txt
-endpoints.txt
+*.txt
 .env
 .prettierrc.json
 .prettierignore
+*.csv
+
 
 npm-debug.log*
 yarn-debug.log*
