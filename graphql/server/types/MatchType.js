@@ -8,7 +8,7 @@ const MatchType = new GraphQLObjectType({
   name: 'Matches',
   description: 'Represents matchups of OWL teams',
   fields: () => ({
-
+    
   })
 })
 
