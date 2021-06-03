@@ -39,7 +39,8 @@ def db_connection():
     conn.close()
 
 
-@pytest.fixture(scope="module")
+# https://docs.pytest.org/en/latest/how-to/fixtures.html#scope-sharing-fixtures-across-classes-modules-packages-or-session
+@pytest.fixture(scope="function")
 def db_connection_class():
     """Connect to database through Database Connection object"""
     db = utils.DatabaseConnection()
@@ -88,17 +89,51 @@ def test_db_class_invalid_query(db_connection_class):
     # table does not exist
     # actually throws psycopg2.errors.InFailedSqlTransaction
     with pytest.raises(psycopg2.errors.lookup("25P02")) as e_info:
-        db.select_query(query_literal="COUNT", table="map_sats")
+        db.select_query(query_literal="COUNT(*)", table="map_sats")
 
 
 def test_select_most_recent_match_date(db_connection_class):
     db = db_connection_class
 
     timestamp = db.get_most_recent_match_timestamp()
-    assert isinstance(timestamp, datetime.datetime)
+    assert isinstance(timestamp, datetime.datetime), "Get most recent match timestamp method returns a " \
+                                                     "datetime.datetime object"
+
+
+def test_db_class_batch_insert(db_connection_class):
+    db = db_connection_class
+
+    columns = [
+        "match_id", "player", "team_name", "stat_name", "hero", "stat_amount"
+    ]
+    example_data = [
+        [37234, "Doha", "Dallas Fuel", "All Damage Done", "All Heroes", 13900.68009],
+        [37234, "Doha", "Dallas Fuel", "Assists", "All Heroes", 8],
+        [37234, "Doha", "Dallas Fuel", "Average Time Alive", "All Heroes", 56.48110171],
+        [37234, "Doha", "Dallas Fuel", "Barrier Damage Done", "All Heroes", 1495.492155],
+        [37234, "Doha", "Dallas Fuel", "Damage - Quick Melee", "All Heroes", 60]
+    ]
+
+    num_inserted = db.batch_insert(table="player_stats", column_names=columns, row_list=example_data)
+    assert num_inserted == len(example_data), "Successful insertion of data to database returns number of rows inserted"
 
 
 if __name__ == "__main__":
-    print(db_user, db_pass, db_name)
-    print(os.getcwd())
-    print(base_dir)
+    test = [
+        [37234, "Doha", "Dallas Fuel", "All Damage Done", "All Heroes", 13900.68009],
+        [37234, "Doha", "Dallas Fuel", "Assists", "All Heroes", 8],
+        [37234, "Doha", "Dallas Fuel", "Average Time Alive", "All Heroes", 56.48110171],
+        [37234, "Doha", "Dallas Fuel", "Barrier Damage Done", "All Heroes", 1495.492155],
+        [37234, "Doha", "Dallas Fuel", "Damage - Quick Melee", "All Heroes", 60]
+    ]
+
+    # iteratively convert list data to string representations of tuples
+    for data in test:
+        print(str(tuple(data)))
+        print(type(str(tuple(data))))
+
+    # same thing as above but with map function
+    test_map = map(lambda x: str(tuple(x)), test)
+    print(list(test_map))
+
+

@@ -59,11 +59,20 @@ class DatabaseConnection:
 
         return rows
 
-    def get_most_recent_match_timestamp(self):
+    def get_most_recent_match_timestamp(self) -> datetime.datetime:
+        cur = self.conn.cursor()
+
+        cur.execute("""SELECT round_start_time FROM map_stats 
+                    ORDER BY round_start_time DESC 
+                    LIMIT 1;""")
+        rows = cur.fetchall()
+        cur.close()
+        return rows[0][0]
+
+    def batch_insert(self, table, column_names, row_list) -> int:
         cur = self.conn.cursor()
 
 
-
-    def batch_insert(self, table, column_names, row_list):
-        cur = self.conn.cursor()
-        # TODO
+if __name__ == "__main__":
+    db = DatabaseConnection()
+    print(db.get_most_recent_match_timestamp())
