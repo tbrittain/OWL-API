@@ -22,7 +22,7 @@
 .env.test.local
 .env.production.local
 *.txt
-.env
+*.env
 .prettierrc.json
 .prettierignore
 *.csv
