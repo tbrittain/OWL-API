@@ -1,12 +1,13 @@
 import datetime
 import os
-import pandas
+import config
+import pandas as pd
 import psycopg2
 import psycopg2.errors
+
 from dotenv import load_dotenv
-import config
 from io import StringIO
-import pandas as pd
+
 
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if config.environment == "dev":
@@ -44,7 +45,6 @@ class DatabaseConnection:
     def select_query(self, query_literal: str, table: str) -> list:
         """Executing literals not recommended as query parameterization is better,
         but this method will not be exposed to any end users"""
-
         if len(query_literal) == 0:
             raise ValueError('Query must not be empty')
         elif len(table) == 0:
@@ -63,6 +63,7 @@ class DatabaseConnection:
         return rows
 
     def get_most_recent_match_timestamp(self) -> datetime.datetime:
+        """Pulls the most recent match timestamp from the database"""
         cur = self.conn.cursor()
 
         cur.execute("""SELECT round_start_time FROM map_stats 
@@ -72,7 +73,9 @@ class DatabaseConnection:
         cur.close()
         return rows[0][0]
 
-    def insert_copy_bulk_data(self, table: str, df: pandas.DataFrame, columns: tuple) -> int:
+    def insert_copy_bulk_data(self, table: str, df: pd.DataFrame, columns: tuple) -> int:
+        """Used for copying large amounts of player and match data efficiently
+        into their respective databases"""
         cur = self.conn.cursor()
 
         buffer = StringIO()
@@ -89,7 +92,7 @@ class DatabaseConnection:
             cur.close()
         return df.count()[0]
 
-    def insert_single_row(self, table: str, columns: tuple, row: tuple):
+    def insert_single_row(self, table: str, columns: tuple, row: tuple) -> bool:
         cur = self.conn.cursor()
 
         num_params = len(row)
