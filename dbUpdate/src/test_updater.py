@@ -31,7 +31,7 @@ def test_csv_files_contain_required_columns():
     # players.csv
     players = pd.read_csv(f'{base_dir}\\players.csv')
     existing_columns = list(players.columns)
-    required_columns = ['start_time', 'match_id', 'player', 'team_name', 'stat_name', 'hero', 'stat_amount']
+    required_columns = ['round_start_time', 'match_id', 'player', 'team_name', 'stat_name', 'hero', 'stat_amount']
 
     for column_name in required_columns:
         assert column_name in existing_columns, f"column {column_name} must be present"
