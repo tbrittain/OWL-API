@@ -77,5 +77,9 @@ def test_truncate_df_after_most_recent_match_date(db_connection_class):
                                                                         "dataframe"
 
 
+def test_df_normalization():
+    pass
+
+
 if __name__ == "__main__":
     print(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

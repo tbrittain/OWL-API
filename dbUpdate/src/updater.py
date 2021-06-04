@@ -1,4 +1,5 @@
 import datetime
+import unicodedata
 import utils
 import pandas as pd
 import os
@@ -30,6 +31,30 @@ def truncate_df_after_date(date: datetime.datetime, file_path: str) -> pd.DataFr
         raise ValueError('No new data present that is not already in database')
 
 
+def dataframe_normalize(df: pd.DataFrame):
+    columns = list(df.columns)
+
+    if 'player' and 'hero' in columns:  # players.csv
+        # TODO: map strip_accents function to player_name column
+        # https://stackoverflow.com/questions/46271560/applying-a-function-on-a-pandas-dataframe-column-using-map
+        pass
+    elif 'map_name' in columns:  # matches.csv
+        # TODO: Watchpoint: Gibraltar -> Watchpoint Gibraltar & King's Row -> Kings Row
+        # https://stackoverflow.com/questions/43768023/remove-characters-from-pandas-column
+        pass
+
+    # may not need this function
+    def strip_accents(text: str) -> str:
+        """helper function for removing accented characters,
+        such as Lúcio -> Lucio and blasé -> blase"""
+        text = unicodedata.normalize('NFD', text) \
+            .encode('ascii', 'ignore') \
+            .decode("utf-8")
+        return str(text)
+
+    pass
+
+
 def main():
     match_path = f'{base_dir}\\matches.csv'
     players_path = f'{base_dir}\\players.csv'
@@ -53,10 +78,18 @@ def main():
         db.terminate()
         exit()
 
+    # TODO: clean match and player data
+    # Watchpoint: Gibraltar -> Watchpoint Gibraltar
+    # King's Row -> Kings Row
+
+    truncated_match_df = dataframe_normalize(truncated_match_df)
+    truncated_players_df = dataframe_normalize(truncated_players_df)
+
     # TODO: insert match and players data here using db.insert_copy_bulk_data()
     # will need to remove a few columns from each dataframe
 
     # TODO: pull existing distinct year, player, team from players_teams table
+    # existing_players = db.select_query("SELECT ")
 
     # TODO: compare existing year, player, team
 
