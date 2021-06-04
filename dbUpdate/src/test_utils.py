@@ -114,7 +114,7 @@ def test_db_class_batch_insert(db_connection_class):
         [37234, "Doha", "Dallas Fuel", "Damage - Quick Melee", "All Heroes", 60]
     ]
 
-    num_inserted = db.batch_insert(table="player_stats", column_names=columns, row_list=example_data)
+    num_inserted = db.insert_copy_from_csv(table="player_stats", column_names=columns, row_list=example_data)
     assert num_inserted == len(example_data), "Successful insertion of data to database returns number of rows inserted"
 
 

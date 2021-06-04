@@ -4,6 +4,7 @@ import psycopg2
 import psycopg2.errors
 from dotenv import load_dotenv
 import config
+from io import StringIO
 
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if config.environment == "dev":
@@ -69,10 +70,35 @@ class DatabaseConnection:
         cur.close()
         return rows[0][0]
 
-    def batch_insert(self, table, column_names, row_list) -> int:
+    def insert_copy_from_csv(self, table: str, column_names: tuple, row_list: list) -> int:
         cur = self.conn.cursor()
+        try:
+            num_params = len(row_list[0])
+            params = "(%s," + ((num_params - 1) * "%s,") + ")"
+
+            formatted_rows = map(lambda x: tuple(x), row_list)
+
+            sql = f"""INSERT INTO {table} {column_names} VALUES """
+            print(sql, params)
+            sql += ','.join(cur.mogrify(params, x) for x in formatted_rows)  # dynamically add '%s'
+            print(sql)
+            # cur.execute()  # iteration?
+        except Exception as e:
+            error_code = psycopg2.errors.lookup(e.pgcode)
+            raise error_code
+        finally:
+            cur.close()
 
 
 if __name__ == "__main__":
     db = DatabaseConnection()
-    print(db.get_most_recent_match_timestamp())
+    columns = ("match_id", "player", "team_name", "stat_name", "hero", "stat_amount")
+    test = [
+        [37234, "Doha", "Dallas Fuel", "All Damage Done", "All Heroes", 13900.68009],
+        [37234, "Doha", "Dallas Fuel", "Assists", "All Heroes", 8],
+        [37234, "Doha", "Dallas Fuel", "Average Time Alive", "All Heroes", 56.48110171],
+        [37234, "Doha", "Dallas Fuel", "Barrier Damage Done", "All Heroes", 1495.492155],
+        [37234, "Doha", "Dallas Fuel", "Damage - Quick Melee", "All Heroes", 60]
+    ]
+
+    db.insert_copy_from_csv(table="match_stats", column_names=columns, row_list=test)
