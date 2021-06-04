@@ -1,10 +1,12 @@
 import datetime
 import os
+import pandas
 import psycopg2
 import psycopg2.errors
 from dotenv import load_dotenv
 import config
 from io import StringIO
+import pandas as pd
 
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if config.environment == "dev":
@@ -70,35 +72,53 @@ class DatabaseConnection:
         cur.close()
         return rows[0][0]
 
-    def insert_copy_from_csv(self, table: str, column_names: tuple, row_list: list) -> int:
+    def insert_copy_bulk_data(self, table: str, df: pandas.DataFrame, columns: tuple) -> int:
         cur = self.conn.cursor()
+
+        buffer = StringIO()
+        df.to_csv(path_or_buf=buffer, header=False, index=False)
+        print(df.to_csv(header=False, index=False))
+        buffer.seek(0)
+
         try:
-            num_params = len(row_list[0])
-            params = "(%s," + ((num_params - 1) * "%s,") + ")"
-
-            formatted_rows = map(lambda x: tuple(x), row_list)
-
-            sql = f"""INSERT INTO {table} {column_names} VALUES """
-            print(sql, params)
-            sql += ','.join(cur.mogrify(params, x) for x in formatted_rows)  # dynamically add '%s'
-            print(sql)
-            # cur.execute()  # iteration?
+            cur.copy_from(file=buffer, table=table, sep=",", columns=columns)
         except Exception as e:
             error_code = psycopg2.errors.lookup(e.pgcode)
             raise error_code
         finally:
             cur.close()
+        return df.count()[0]
+
+    def insert_single_row(self, table: str, columns: tuple, row: tuple):
+        cur = self.conn.cursor()
+
+        num_params = len(row)
+        params = ""
+        if num_params == 1:
+            params += ""
+        elif num_params == 2:
+            params += "(%s,%s)"
+        else:
+            params += "(%s," + ((num_params - 2) * "%s,") + "%s)"
+
+        formatted_columns = str(columns).replace("'", "").replace('"', '')
+
+        try:
+            cur.execute(f"""INSERT INTO {table} {formatted_columns} VALUES {params}""", row)
+        except Exception as e:
+            error_code = psycopg2.errors.lookup(e.pgcode)
+            raise error_code
+        finally:
+            cur.close()
+        return True
 
 
 if __name__ == "__main__":
-    db = DatabaseConnection()
-    columns = ("match_id", "player", "team_name", "stat_name", "hero", "stat_amount")
-    test = [
-        [37234, "Doha", "Dallas Fuel", "All Damage Done", "All Heroes", 13900.68009],
-        [37234, "Doha", "Dallas Fuel", "Assists", "All Heroes", 8],
-        [37234, "Doha", "Dallas Fuel", "Average Time Alive", "All Heroes", 56.48110171],
-        [37234, "Doha", "Dallas Fuel", "Barrier Damage Done", "All Heroes", 1495.492155],
-        [37234, "Doha", "Dallas Fuel", "Damage - Quick Melee", "All Heroes", 60]
-    ]
+    columns = ("year", "player", "team")
+    data = (2021, "Doha", "Dallas Fuel")
 
-    db.insert_copy_from_csv(table="match_stats", column_names=columns, row_list=test)
+    db = DatabaseConnection()
+    returned_safely = db.insert_single_row("players_teams", columns=columns, row=data)
+    print(returned_safely)
+    db.rollback()
+    db.terminate()

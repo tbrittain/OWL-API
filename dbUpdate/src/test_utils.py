@@ -6,6 +6,7 @@ import pytest
 from dotenv import load_dotenv
 import utils
 import config
+import pandas as pd
 
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if config.environment == "dev":
@@ -103,37 +104,30 @@ def test_select_most_recent_match_date(db_connection_class):
 def test_db_class_batch_insert(db_connection_class):
     db = db_connection_class
 
-    columns = [
-        "match_id", "player", "team_name", "stat_name", "hero", "stat_amount"
-    ]
-    example_data = [
-        [37234, "Doha", "Dallas Fuel", "All Damage Done", "All Heroes", 13900.68009],
-        [37234, "Doha", "Dallas Fuel", "Assists", "All Heroes", 8],
-        [37234, "Doha", "Dallas Fuel", "Average Time Alive", "All Heroes", 56.48110171],
-        [37234, "Doha", "Dallas Fuel", "Barrier Damage Done", "All Heroes", 1495.492155],
-        [37234, "Doha", "Dallas Fuel", "Damage - Quick Melee", "All Heroes", 60]
-    ]
+    data = {
+        "year": [2021, 2021, 2021, 2021, 2021],
+        "match_id": [37234, 37234, 37234, 37234, 37234],
+        "player": ["Doha", "Doha", "Doha", "Doha", "Doha"],
+        "stat_name": ["All Damage Done", "Assists", "Average Time Alive", "Barrier Damage Done",
+                      "Damage - Quick Melee"],
+        "hero": ["All Heroes", "All Heroes", "All Heroes", "All Heroes", "All Heroes"],
+        "stat_amount": [13900.68009, 8, 56.48110171, 1495.492155, 60]
+    }
+    columns = ("year", "match_id", "player", "stat_name", "hero", "stat_amount")
+    test_df = pd.DataFrame.from_dict(data)
 
-    num_inserted = db.insert_copy_from_csv(table="player_stats", column_names=columns, row_list=example_data)
-    assert num_inserted == len(example_data), "Successful insertion of data to database returns number of rows inserted"
+    num_inserted = db.insert_copy_bulk_data(table="player_stats", df=test_df, columns=columns)
+    assert num_inserted == len(test_df), "Successful insertion of data to database returns number of rows inserted"
+
+
+def test_db_single_insert(db_connection_class):
+    db = db_connection_class
+
+    columns = ("year", "player", "team")
+    data = (2021, "Doha", "Dallas Fuel")
+    inserted_safely = db.insert_single_row(table="players_teams", columns=columns, row=data)
+    assert inserted_safely == True, "Successful insertion of single row returns True"
 
 
 if __name__ == "__main__":
-    test = [
-        [37234, "Doha", "Dallas Fuel", "All Damage Done", "All Heroes", 13900.68009],
-        [37234, "Doha", "Dallas Fuel", "Assists", "All Heroes", 8],
-        [37234, "Doha", "Dallas Fuel", "Average Time Alive", "All Heroes", 56.48110171],
-        [37234, "Doha", "Dallas Fuel", "Barrier Damage Done", "All Heroes", 1495.492155],
-        [37234, "Doha", "Dallas Fuel", "Damage - Quick Melee", "All Heroes", 60]
-    ]
-
-    # iteratively convert list data to string representations of tuples
-    for data in test:
-        print(str(tuple(data)))
-        print(type(str(tuple(data))))
-
-    # same thing as above but with map function
-    test_map = map(lambda x: str(tuple(x)), test)
-    print(list(test_map))
-
-
+    pass
