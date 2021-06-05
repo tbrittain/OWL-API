@@ -31,19 +31,7 @@ def truncate_df_after_date(date: datetime.datetime, file_path: str) -> pd.DataFr
         raise ValueError('No new data present that is not already in database')
 
 
-def dataframe_normalize(df: pd.DataFrame):
-    columns = list(df.columns)
-
-    if 'player' and 'hero' in columns:  # players.csv
-        # TODO: map strip_accents function to player_name column
-        # https://stackoverflow.com/questions/46271560/applying-a-function-on-a-pandas-dataframe-column-using-map
-        pass
-    elif 'map_name' in columns:  # matches.csv
-        # TODO: Watchpoint: Gibraltar -> Watchpoint Gibraltar & King's Row -> Kings Row
-        # https://stackoverflow.com/questions/43768023/remove-characters-from-pandas-column
-        pass
-
-    # may not need this function
+def dataframe_normalize(df: pd.DataFrame) -> pd.DataFrame:
     def strip_accents(text: str) -> str:
         """helper function for removing accented characters,
         such as Lúcio -> Lucio and blasé -> blase"""
@@ -52,7 +40,20 @@ def dataframe_normalize(df: pd.DataFrame):
             .decode("utf-8")
         return str(text)
 
-    pass
+    columns = list(df.columns)
+
+    if 'player' and 'hero' in columns:  # players.csv
+        # https://stackoverflow.com/questions/46271560/applying-a-function-on-a-pandas-dataframe-column-using-map
+        df['player'] = list(map(lambda x: strip_accents(x), df['player']))
+        df['hero'] = list(map(lambda x: strip_accents(x), df['hero']))
+
+    elif 'map_name' in columns:  # matches.csv
+        # TODO: Watchpoint: Gibraltar -> Watchpoint Gibraltar & King's Row -> Kings Row
+        # https://stackoverflow.com/questions/43768023/remove-characters-from-pandas-column
+        df.map_name.str.replace("'", "")
+        df.map_name.str.replace(":", "")
+
+    return df
 
 
 def main():

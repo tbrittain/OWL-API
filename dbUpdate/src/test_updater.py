@@ -77,6 +77,7 @@ def test_truncate_df_after_most_recent_match_date(db_connection_class):
                                                                         "dataframe"
 
 
+# TODO
 def test_df_normalization():
     pass
 
