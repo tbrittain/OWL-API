@@ -13,7 +13,7 @@ base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def load_csv_to_df(file_path: str) -> pd.DataFrame:
-    return pd.read_csv(file_path)
+    return pd.read_csv(file_path, na_values=np.NaN)
 
 
 def truncate_df_after_date(date: datetime.datetime, file_path: str) -> pd.DataFrame:
@@ -52,9 +52,6 @@ def dataframe_sanitize(df: pd.DataFrame) -> pd.DataFrame:
     elif 'map_name' in columns:  # matches.csv
         # https://stackoverflow.com/questions/43768023/remove-characters-from-pandas-column
         df["map_name"] = list(map(lambda x: re.sub("[':]", '', x), df['map_name']))
-
-        # need to replace empty strings in columns 'playoffs' and 'postseason' as NaN
-        df = df.replace(r'^\s*$', np.nan, regex=True)
 
     return df
 
@@ -128,7 +125,7 @@ def main():
     # no columns from matches need to be removed, but date columns may need to be
     # handled with raw_df['round_start_time'] = pd.to_datetime(raw_df['round_start_time'])
     players_columns_to_remove = ["round_start_time", "team"]
-    truncated_players_df = remove_columns(truncated_match_df, players_columns_to_remove)
+    truncated_players_df = remove_columns(truncated_players_df, players_columns_to_remove)
 
     # copy matches
     try:
@@ -153,7 +150,7 @@ def main():
     # copy players
     try:
         player_table = "player_stats"
-        columns = ('match_id', 'player', 'stat_name', 'hero', 'stat_amount')
+        columns = ('year', 'match_id', 'player', 'stat_name', 'hero', 'stat_amount')
         affected_rows = db.insert_copy_bulk_data(table=player_table,
                                                  df=truncated_players_df,
                                                  columns=columns)

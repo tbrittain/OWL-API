@@ -13,6 +13,8 @@ if config.environment == "dev":
     load_dotenv(f'{base_dir}\\dev.env')
 elif config.environment == "prod":
     load_dotenv(f'{base_dir}\\prod.env')
+elif config.environment == "prod_local":
+    load_dotenv(f'{base_dir}\\prod_local.env')
 else:
     print("Invalid environment setting, exiting")
     exit()
@@ -83,7 +85,7 @@ class DatabaseConnection:
         buffer.seek(0)
 
         try:
-            cur.copy_from(file=buffer, table=table, sep=",", columns=columns)
+            cur.copy_from(file=buffer, table=table, sep=",", columns=columns, null="")
         except Exception as e:
             error_code = psycopg2.errors.lookup(e.pgcode)
             raise error_code
