@@ -79,7 +79,7 @@ class DatabaseConnection:
 
         buffer = StringIO()
         df.to_csv(path_or_buf=buffer, header=False, index=False)
-        print(df.to_csv(header=False, index=False))
+        # print(df.to_csv(header=False, index=False))
         buffer.seek(0)
 
         try:

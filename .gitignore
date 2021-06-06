@@ -26,6 +26,7 @@
 .prettierrc.json
 .prettierignore
 *.csv
+*.log
 
 
 npm-debug.log*

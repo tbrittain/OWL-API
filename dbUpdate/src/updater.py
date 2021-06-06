@@ -1,10 +1,13 @@
 import datetime
 import re
+import traceback
 import unicodedata
+import numpy as np
 import utils
 import pandas as pd
 import os
 import config
+from project_logging import logger
 
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -50,6 +53,9 @@ def dataframe_sanitize(df: pd.DataFrame) -> pd.DataFrame:
         # https://stackoverflow.com/questions/43768023/remove-characters-from-pandas-column
         df["map_name"] = list(map(lambda x: re.sub("[':]", '', x), df['map_name']))
 
+        # need to replace empty strings in columns 'playoffs' and 'postseason' as NaN
+        df = df.replace(r'^\s*$', np.nan, regex=True)
+
     return df
 
 
@@ -79,24 +85,27 @@ def main():
     db = utils.DatabaseConnection()
 
     most_recent_match = db.get_most_recent_match_timestamp()
+    time_since_most_recent_match = datetime.datetime.now() - most_recent_match
+    logger.info(f"Most recent match in database was on {most_recent_match}, "
+                f"{time_since_most_recent_match.days} days ago")
     try:
         truncated_match_df = truncate_df_after_date(date=most_recent_match,
                                                     file_path=match_path)
         truncated_players_df = truncate_df_after_date(date=most_recent_match,
                                                       file_path=players_path)
     except KeyError:
-        print('CSV file MUST have round_start_time column for filtering, exiting')
+        logger.error('CSV file MUST have round_start_time column for filtering, exiting')
         db.rollback()
         db.terminate()
         exit()
     except ValueError:
-        print('No new data present that is not already in database, exiting')
+        logger.error('No new data present that is not already in database, exiting')
         db.rollback()
         db.terminate()
         exit()
 
     if truncated_match_df.count()[0] == 0:
-        print("No new match info present, exiting")
+        logger.error("No new match info present, exiting")
         db.rollback()
         db.terminate()
         exit()
@@ -108,11 +117,13 @@ def main():
     new_players = generate_new_players(truncated_players_df, raw_existing_players)
 
     if new_players:
+        logger.info(f"{len(new_players)} new player appearances identified since last database update")
         players_teams_columns = ("year", "player", "team")
         for player in new_players:
             db.insert_single_row(table="players_teams",
                                  columns=players_teams_columns,
                                  row=player)
+    logger.info("New players added to players_teams table")
 
     # no columns from matches need to be removed, but date columns may need to be
     # handled with raw_df['round_start_time'] = pd.to_datetime(raw_df['round_start_time'])
@@ -128,12 +139,13 @@ def main():
                    'defender', 'attacker_payload_distance', 'defender_payload_distance', 'attacker_time_banked',
                    'defender_time_banked', 'attacker_control_perecent', 'defender_control_perecent',
                    'attacker_round_end_score', 'defender_round_end_score')
-        db.insert_copy_bulk_data(table=map_table,
-                                 df=truncated_match_df,
-                                 columns=columns)
+        affected_rows = db.insert_copy_bulk_data(table=map_table,
+                                                 df=truncated_match_df,
+                                                 columns=columns)
+        logger.info(f"Copying {affected_rows} rows into table {map_table}")
     except Exception as e:
-        print(f"An error occurred during copying over {map_table} data, rolling back changes")
-        print(repr(e))
+        logger.error(f"An error occurred during copying over {map_table} data, rolling back changes")
+        traceback.print_exc()
         db.rollback()
         db.terminate()
         exit()
@@ -142,20 +154,23 @@ def main():
     try:
         player_table = "player_stats"
         columns = ('match_id', 'player', 'stat_name', 'hero', 'stat_amount')
-        db.insert_copy_bulk_data(table=player_table,
-                                 df=truncated_players_df,
-                                 columns=columns)
+        affected_rows = db.insert_copy_bulk_data(table=player_table,
+                                                 df=truncated_players_df,
+                                                 columns=columns)
+        logger.info(f"Copying {affected_rows} rows into table {player_table}")
     except Exception as e:
-        print(f"An error occurred during copying over {player_table} data, rolling back changes")
-        print(repr(e))
+        logger.error(f"An error occurred during copying over {player_table} data, rolling back changes")
+        traceback.print_exc()
         db.rollback()
         db.terminate()
         exit()
 
     if config.environment == "dev":
-        db.rollback()  # once testing complete, replace this with db.commit()
+        db.rollback()
+        logger.info("New data processed successfully, rolling back changes")
     else:
         db.commit()
+        logger.info("New data committed to database")
     db.terminate()
 
 
