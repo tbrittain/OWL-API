@@ -31,7 +31,7 @@ def test_csv_files_contain_required_columns():
     # players.csv
     players = pd.read_csv(f'{base_dir}\\players.csv')
     existing_columns = list(players.columns)
-    required_columns = ['round_start_time', 'match_id', 'player', 'team_name', 'stat_name', 'hero', 'stat_amount']
+    required_columns = ['round_start_time', 'match_id', 'player', 'team', 'stat_name', 'hero', 'stat_amount']
 
     for column_name in required_columns:
         assert column_name in existing_columns, f"column {column_name} must be present"
@@ -133,7 +133,6 @@ def test_generate_new_players(db_connection_class):
         assert player not in raw_existing_players, "New players should not already exist"
 
 
-# TODO
 def test_remove_columns():
     test_player_data = {
         "round_start_time": ["4/23/2021 21:10", "4/23/2021 21:10", "4/23/2021 21:10"],
@@ -145,8 +144,15 @@ def test_remove_columns():
         "hero": ["Lúcio", "Lúcio", "Lúcio"],
         "stat_amount": [63965.21166, 12, 57.14750171]
     }
+    player_df = pd.DataFrame.from_dict(test_player_data)
+    columns_to_remove = ["round_start_time", "team"]
 
-    columns_to_remove = ["round_start_time"]
+    new_player_df = updater.remove_columns(player_df, columns_to_remove)
+
+    original_columns = list(player_df.columns)
+    new_columns = list(new_player_df.columns)
+
+    assert original_columns != new_columns
 
 
 if __name__ == "__main__":

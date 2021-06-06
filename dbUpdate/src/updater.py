@@ -4,10 +4,7 @@ import unicodedata
 import utils
 import pandas as pd
 import os
-
-# TODO: analyze the CSV files and insert relevant info into each table
-# general idea: use sys.argv[argument index]
-# TODO: figure out a way to determine new players for insertion into the players_teams table
+import config
 
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -69,8 +66,10 @@ def generate_new_players(players_df: pd.DataFrame, existing_players) -> list:
     return new_players
 
 
-def remove_columns(df: pd.DataFrame) -> pd.DataFrame:
-    pass
+def remove_columns(df: pd.DataFrame, columns_to_remove: list) -> pd.DataFrame:
+    df_columns = list(df.columns)
+    filtered_df_columns = [i for i in df_columns if i not in columns_to_remove]
+    return df[filtered_df_columns]
 
 
 def main():
@@ -96,20 +95,67 @@ def main():
         db.terminate()
         exit()
 
+    if truncated_match_df.count()[0] == 0:
+        print("No new match info present, exiting")
+        db.rollback()
+        db.terminate()
+        exit()
+
     truncated_match_df = dataframe_sanitize(truncated_match_df)
     truncated_players_df = dataframe_sanitize(truncated_players_df)
 
-    # TODO: compare existing year, player, team
+    raw_existing_players = db.select_query("*", "players_teams")
+    new_players = generate_new_players(truncated_players_df, raw_existing_players)
 
+    if new_players:
+        players_teams_columns = ("year", "player", "team")
+        for player in new_players:
+            db.insert_single_row(table="players_teams",
+                                 columns=players_teams_columns,
+                                 row=player)
 
-    # TODO: insert match and players data here using db.insert_copy_bulk_data()
-    # will need to remove a few columns from each dataframe
+    # no columns from matches need to be removed, but date columns may need to be
+    # handled with raw_df['round_start_time'] = pd.to_datetime(raw_df['round_start_time'])
+    players_columns_to_remove = ["round_start_time", "team"]
+    truncated_players_df = remove_columns(truncated_match_df, players_columns_to_remove)
 
+    # copy matches
+    try:
+        map_table = "map_stats"
+        columns = ('round_start_time', 'round_end_time', 'year', 'stage', 'playoffs', 'postseason', 'match_id',
+                   'game_number', 'match_winner', 'map_winner', 'map_loser', 'map_name', 'map_type', 'map_round',
+                   'winning_team_final_map_score', 'losing_team_final_map_score', 'control_round_name', 'attacker',
+                   'defender', 'attacker_payload_distance', 'defender_payload_distance', 'attacker_time_banked',
+                   'defender_time_banked', 'attacker_control_perecent', 'defender_control_perecent',
+                   'attacker_round_end_score', 'defender_round_end_score')
+        db.insert_copy_bulk_data(table=map_table,
+                                 df=truncated_match_df,
+                                 columns=columns)
+    except Exception as e:
+        print(f"An error occurred during copying over {map_table} data, rolling back changes")
+        print(repr(e))
+        db.rollback()
+        db.terminate()
+        exit()
 
+    # copy players
+    try:
+        player_table = "player_stats"
+        columns = ('match_id', 'player', 'stat_name', 'hero', 'stat_amount')
+        db.insert_copy_bulk_data(table=player_table,
+                                 df=truncated_players_df,
+                                 columns=columns)
+    except Exception as e:
+        print(f"An error occurred during copying over {player_table} data, rolling back changes")
+        print(repr(e))
+        db.rollback()
+        db.terminate()
+        exit()
 
-
-
-    db.rollback()
+    if config.environment == "dev":
+        db.rollback()  # once testing complete, replace this with db.commit()
+    else:
+        db.commit()
     db.terminate()
 
 
