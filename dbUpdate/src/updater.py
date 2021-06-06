@@ -1,4 +1,5 @@
 import datetime
+import re
 import unicodedata
 import utils
 import pandas as pd
@@ -31,7 +32,7 @@ def truncate_df_after_date(date: datetime.datetime, file_path: str) -> pd.DataFr
         raise ValueError('No new data present that is not already in database')
 
 
-def dataframe_normalize(df: pd.DataFrame) -> pd.DataFrame:
+def dataframe_sanitize(df: pd.DataFrame) -> pd.DataFrame:
     def strip_accents(text: str) -> str:
         """helper function for removing accented characters,
         such as Lúcio -> Lucio and blasé -> blase"""
@@ -43,17 +44,33 @@ def dataframe_normalize(df: pd.DataFrame) -> pd.DataFrame:
     columns = list(df.columns)
 
     if 'player' and 'hero' in columns:  # players.csv
+        # this may not be necessary as string columns in pandas do not support UTF-8 by default
         # https://stackoverflow.com/questions/46271560/applying-a-function-on-a-pandas-dataframe-column-using-map
         df['player'] = list(map(lambda x: strip_accents(x), df['player']))
         df['hero'] = list(map(lambda x: strip_accents(x), df['hero']))
 
     elif 'map_name' in columns:  # matches.csv
-        # TODO: Watchpoint: Gibraltar -> Watchpoint Gibraltar & King's Row -> Kings Row
         # https://stackoverflow.com/questions/43768023/remove-characters-from-pandas-column
-        df.map_name.str.replace("'", "")
-        df.map_name.str.replace(":", "")
+        df["map_name"] = list(map(lambda x: re.sub("[':]", '', x), df['map_name']))
 
     return df
+
+
+def generate_new_players(players_df: pd.DataFrame, existing_players) -> list:
+    filtered_players_df = players_df[['year', 'player', 'team']]
+    filtered_players_df = filtered_players_df.drop_duplicates()
+    # https://stackoverflow.com/questions/38516664/anti-join-pandas
+    new_players = []
+    # iterrows generally slow, but it does not need to iterate over very many rows in this case
+    for index, row in filtered_players_df.iterrows():
+        player = tuple(row.values)
+        if player not in existing_players:
+            new_players.append(player)
+    return new_players
+
+
+def remove_columns(df: pd.DataFrame) -> pd.DataFrame:
+    pass
 
 
 def main():
@@ -79,20 +96,18 @@ def main():
         db.terminate()
         exit()
 
-    # TODO: clean match and player data
-    # Watchpoint: Gibraltar -> Watchpoint Gibraltar
-    # King's Row -> Kings Row
+    truncated_match_df = dataframe_sanitize(truncated_match_df)
+    truncated_players_df = dataframe_sanitize(truncated_players_df)
 
-    truncated_match_df = dataframe_normalize(truncated_match_df)
-    truncated_players_df = dataframe_normalize(truncated_players_df)
+    # TODO: compare existing year, player, team
+
 
     # TODO: insert match and players data here using db.insert_copy_bulk_data()
     # will need to remove a few columns from each dataframe
 
-    # TODO: pull existing distinct year, player, team from players_teams table
-    # existing_players = db.select_query("SELECT ")
 
-    # TODO: compare existing year, player, team
+
+
 
     db.rollback()
     db.terminate()

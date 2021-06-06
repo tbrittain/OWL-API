@@ -8,7 +8,6 @@ import psycopg2.errors
 from dotenv import load_dotenv
 from io import StringIO
 
-
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if config.environment == "dev":
     load_dotenv(f'{base_dir}\\dev.env')
