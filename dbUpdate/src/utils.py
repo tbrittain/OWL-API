@@ -4,17 +4,17 @@ import config
 import pandas as pd
 import psycopg2
 import psycopg2.errors
-
 from dotenv import load_dotenv
 from io import StringIO
 
+
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if config.environment == "dev":
-    load_dotenv(f'{base_dir}\\dev.env')
+    load_dotenv(f'{base_dir}/dev.env')
 elif config.environment == "prod":
-    load_dotenv(f'{base_dir}\\prod.env')
+    load_dotenv(f'{base_dir}/prod.env')
 elif config.environment == "prod_local":
-    load_dotenv(f'{base_dir}\\prod_local.env')
+    load_dotenv(f'{base_dir}/prod_local.env')
 else:
     print("Invalid environment setting, exiting")
     exit()
@@ -28,6 +28,7 @@ db_port = os.getenv("DB_PORT")
 
 class DatabaseConnection:
     def __init__(self):
+        # print(f"db_user: {db_user}\ndb_pass: {db_pass}\ndb_name: {db_name}\ndb_host: {db_host}\ndb_port: {db_port}")
         self.conn = psycopg2.connect(dbname=db_name,
                                      user=db_user,
                                      password=db_pass,
@@ -118,11 +119,7 @@ class DatabaseConnection:
 
 
 if __name__ == "__main__":
-    columns = ("year", "player", "team")
-    data = (2021, "Doha", "Dallas Fuel")
-
     db = DatabaseConnection()
-    returned_safely = db.insert_single_row("players_teams", columns=columns, row=data)
-    print(returned_safely)
+    print(db.select_query("*", "players_teams"))
     db.rollback()
     db.terminate()

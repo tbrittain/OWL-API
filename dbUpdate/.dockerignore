@@ -1,2 +1,5 @@
-venv
-.idea
+venv/
+.idea/
+.pytest_cache/
+src/__pycache__
+csv_processing_directions.txt

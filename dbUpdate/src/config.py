@@ -1,1 +1,1 @@
-environment = "prod_local"
+environment = "prod"

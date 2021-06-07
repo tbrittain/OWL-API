@@ -24,6 +24,18 @@ services:
             - owl-api
         links:
             - owl-api
+    owl-update:
+        container_name: owl-update
+        build:
+            context: ./dbUpdate
+        volumes:
+            - ./dbUpdate:/code
+        depends_on: 
+            - db
+        links:
+            - db
+        stdin_open: true
+        tty: true
     db:
         container_name: owl-pg
         image: postgres

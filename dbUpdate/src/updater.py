@@ -76,8 +76,13 @@ def remove_columns(df: pd.DataFrame, columns_to_remove: list) -> pd.DataFrame:
 
 
 def main():
-    match_path = f'{base_dir}\\matches.csv'
-    players_path = f'{base_dir}\\players.csv'
+    logger.info("Beginning match update")
+
+    match_path = f'{base_dir}/matches.csv'
+    players_path = f'{base_dir}/players.csv'
+
+    logger.debug(f"Path to matches: ${match_path}")
+    logger.debug(f"Path to players: ${players_path}")
 
     db = utils.DatabaseConnection()
 
@@ -96,13 +101,13 @@ def main():
         db.terminate()
         exit()
     except ValueError:
-        logger.error('No new data present that is not already in database, exiting')
+        logger.warning('No new data present that is not already in database, exiting')
         db.rollback()
         db.terminate()
         exit()
 
     if truncated_match_df.count()[0] == 0:
-        logger.error("No new match info present, exiting")
+        logger.warning("No new match info present, exiting")
         db.rollback()
         db.terminate()
         exit()
