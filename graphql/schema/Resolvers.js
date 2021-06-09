@@ -14,7 +14,20 @@ const resolvers = {
       } else {
         return getEndpoint(`/players`)
       }
+    },
+    getPlayer(parent, args, context, info) {
+      if (args.year) {
+        return getEndpoint(`/players/${args.player}?year=${args.year}`)
+      } else {
+        return getEndpoint(`/players/${args.player}`)
+      }
     }
+  },
+  PlayerPerformance(parent, args, context, info) {
+
+  },
+  HeroStats(parent, args, context, info) {
+
   }
 }
 

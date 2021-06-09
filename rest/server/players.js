@@ -33,9 +33,6 @@ playersRouter.get('/', async (req, res) => {
   }
 })
 
-// TODO: perhaps instead of a post method to update DB, create a helper program that takes an excel/csv file as input and
-// automatically updates the databases with recent match data
-
 const validatePlayer = async (req, res, next) => {
   const { player } = req.params
   let players = await selectQuery(
@@ -81,7 +78,7 @@ const validateHeroParams = async (req, res, next) => {
   }
 }
 
-const validateMatchIds = async (req, res, next) => {
+const validateMatchIdsQuery = async (req, res, next) => {
   if (req.query.match_ids) {
     const matchIds = req.query.match_ids.split(',')
     let existingMatchIds = await selectQuery(
@@ -142,17 +139,39 @@ const validateStatNamesQuery = async (req, res, next) => {
   }
 }
 
-playersRouter.get('/:player/matches', validatePlayer, async (req, res) => {
+const validateMatchIdParams = async (req, res, next) => {
+  const { matchId } = req.params
+  let existingMatchIds = await selectQuery(
+    'total-match-ids',
+    'match_id',
+    true,
+    'player_stats'
+  )
+  existingMatchIds = existingMatchIds.map(
+    (element) => Object.values(element)[0]
+  )
+  if (!existingMatchIds.includes(Number(matchId))) {
+    res.status(400).send(`Invalid match ID provided: ${matchId}`)
+  } else {
+    next()
+  }
+}
+
+playersRouter.get('/:player', validatePlayer, async (req, res) => {
   const { player } = req.params
 
   if (!req.query.year) {
     const matches = await selectQuery(
       `${player}-match-list`,
-      'year, ARRAY_AGG(DISTINCT match_id) AS match_ids',
+      'MAX(player_stats.player) AS name, ARRAY_AGG(DISTINCT players_teams.team) AS team, ARRAY_AGG(DISTINCT player_stats.year) AS year, ARRAY_AGG(DISTINCT match_id) AS matches',
       false,
       'player_stats',
-      [['lower(player) = ', player.toLowerCase()]],
-      'year, player'
+      [
+        [` INNER JOIN players_teams
+        ON lower(player_stats.player) = lower(players_teams.player) AND player_stats.year = players_teams.year
+        WHERE lower(player_stats.player) = '${player.toLowerCase()}'`]
+      ],
+      'player_stats.player'
     )
 
     if (matches.length > 0) {
@@ -161,20 +180,63 @@ playersRouter.get('/:player/matches', validatePlayer, async (req, res) => {
   } else {
     const matches = await selectQuery(
       `${player}-match-list-${req.query.year}`,
-      'year, ARRAY_AGG(DISTINCT match_id) AS match_ids',
+      'MAX(player_stats.player) AS name, ARRAY_AGG(DISTINCT players_teams.team) AS team, ARRAY_AGG(DISTINCT player_stats.year) as year, ARRAY_AGG(DISTINCT match_id) AS matches',
       false,
       'player_stats',
       [
-        ['lower(player) = ', player.toLowerCase()],
-        ['year = ', req.query.year, 'AND']
+        [` INNER JOIN players_teams
+        ON lower(player_stats.player) = lower(players_teams.player) AND player_stats.year = players_teams.year
+        WHERE lower(player_stats.player) = '${player.toLowerCase()}' AND player_stats.year = ${req.query.year}`]
       ],
-      'year, player'
+      'player_stats.player'
     )
 
     if (matches.length > 0) {
       res.send(matches)
     }
   }
+})
+
+playersRouter.get('/:player/:matchId', validateMatchIdParams, async (req, res) => {
+  const { player, matchId } = req.params
+  let heroesPlayed = await selectQuery(
+    `${player}-${matchId}-unique-heroes`,
+    'hero',
+    true,
+    'player_stats',
+    [
+      ['lower(player) = ', player.toLowerCase()],
+      ['match_id = ', matchId, 'AND']
+    ])
+  heroesPlayed = heroesPlayed.map((element) => Object.values(element)[0])
+
+  if (heroesPlayed.length === 0) {
+    res.status(404).send(`Player ${player} did not participate in match of ID ${matchId}`)
+    return
+  }
+
+  const heroStats = {}
+
+  for (const hero of heroesPlayed) {
+    const stats = await selectQuery(
+      `${player}-${matchId}-${hero}-stats`,
+      'stat_name, SUM(stat_amount) AS stat_amount',
+      false,
+      'player_stats',
+      [
+        ['lower(player) = ', player.toLowerCase()],
+        ['match_id = ', matchId, 'AND'],
+        ['hero = ', hero, 'AND']
+      ],
+      'stat_name')
+    const formattedMatchStat = {}
+    for (const stat of stats) {
+      formattedMatchStat[stat.stat_name] = stat.stat_amount
+    }
+    heroStats[hero] = formattedMatchStat
+  }
+
+  res.send(heroStats)
 })
 
 playersRouter.get('/heroes', async (req, res) => {
@@ -265,7 +327,7 @@ playersRouter.get(
   '/:player/heroes/:hero',
   validatePlayer,
   validateHeroParams,
-  validateMatchIds,
+  validateMatchIdsQuery,
   validateStatNamesQuery,
   async (req, res) => {
     const { player, hero } = req.params
