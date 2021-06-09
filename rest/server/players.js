@@ -6,29 +6,29 @@ playersRouter.get('/', async (req, res) => {
   if (!req.query.year) {
     const players = await selectQuery(
       'player-list-total',
-      'player',
+      'player AS name, ARRAY_AGG(team) AS team, ARRAY_AGG(year) AS year',
       true,
       'players_teams',
       null,
-      null,
+      'player',
       'player ASC'
     )
     if (players.length > 0) {
-      res.send(players.map((element) => Object.values(element)[0]))
+      res.send(players)
     }
   } else {
     const players = await selectQuery(
       `player-list-${req.query.year}`,
-      'player',
+      'player AS name, ARRAY_AGG(team) AS team, ARRAY_AGG(year) AS year',
       true,
       'players_teams',
       [['year = ', req.query.year]],
-      null,
+      'player',
       'player ASC'
     )
 
     if (players.length > 0) {
-      res.send(players.map((element) => Object.values(element)[0]))
+      res.send(players)
     }
   }
 })
