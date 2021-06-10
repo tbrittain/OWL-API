@@ -1,6 +1,7 @@
 const express = require('express')
 const cors = require('cors')
 const { ApolloServer } = require('apollo-server-express')
+const snakeCase = require('lodash.snakecase')
 
 // express as middleware
 const port = process.env.port || 4001
@@ -10,8 +11,17 @@ const app = express()
 const { typeDefs } = require('./schema/TypeDefs')
 const { resolvers } = require('./schema/Resolvers')
 
+// handle some fields from REST api returned as snake_case -> camelCase
+const snakeCaseFieldResolver = (source, args, contextValue, info) => {
+  return source[snakeCase(info.fieldName)]
+}
+
 // apollo server
-const server = new ApolloServer({typeDefs, resolvers})
+const server = new ApolloServer({
+  fieldResolver: snakeCaseFieldResolver,
+  typeDefs, 
+  resolvers
+})
 
 // handle CORS requests from index.html
 app.use(cors())

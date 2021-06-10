@@ -40,24 +40,27 @@ const resolvers = {
         if (results.length === 0) {
           throw new SyntaxError(`${parent.name} did not participate in match ${args.id}`)
         } else {
-        // passing playerName to the child PlayerMatch
-        results[0].playerName = parent.name
-        return results
+          // passing playerName to the child PlayerMatch
+          results[0].playerName = parent.name
+          return results
         }
       } else {
         results = await getEndpoint(`players/${parent.name}/matches`)
-        results[0].playerName = parent.name
+        for (const result of results) {
+          // passing playerName to the children PlayerMatch
+          result.playerName = parent.name
+        }
         return results
       }
     }
   },
   PlayerMatch: {
     async hero(parent, args) {
-      // console.log(parent)
-      // console.log(args)
       // args.name = hero name
       if (args.name) {
+        // FIXME: need an endpoint to get the heroes from the individual match, because this one takes a long time
         let results = await getEndpoint(`players/${parent.playerName}/matches/heroes`)
+        // todo handle snake_case... i thought that middleware handled it but no
         results = results.filter(match => match.match_id === parent.id)
         const heroes = results[0].heroes
         if (heroes.includes(args.name)) {
@@ -91,6 +94,7 @@ const resolvers = {
     }
   },
   Hero: {
+    // FIXME PREVENT THIS FROM BEING CALLED WHEN NESTED TOO DEEP BECAUSE IT WILL FRY YOUR CPU
     async stats(parent, args) {
       const playerName = parent.playerName
       const heroName = parent.name
@@ -124,13 +128,14 @@ const resolvers = {
         console.log(parent)
       } else {
         const results = await getEndpoint(`teams/${teamName}`)
+        console.log(results)
         return results
       }
     }
   },
   TeamLineup: {
     async matches(parent, args) {
-      
+
     }
   }
 }
