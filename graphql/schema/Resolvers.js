@@ -26,23 +26,89 @@ const resolvers = {
     }
   },
   Player: {
-    async matches(player, args) {
+    async matches(parent, args) {
+      let results
       if (args.id) {
-        let results = await getEndpoint(`players/${player.name}/matches`)
+        results = await getEndpoint(`players/${parent.name}/matches`)
         results = results.filter(match => match.id === args.id)
+        if (results.length === 0) {
+          throw new SyntaxError(`${parent.name} did not participate in match ${args.id}`)
+        } else {
+        // passing playerName to the child PlayerMatch
+        results[0].playerName = parent.name
         return results
+        }
       } else {
-        const results = await getEndpoint(`players/${player.name}/matches`)
+        results = await getEndpoint(`players/${parent.name}/matches`)
+        results[0].playerName = parent.name
         return results
       }
     }
   },
+  PlayerMatch: {
+    async hero(parent, args) {
+      // console.log(parent)
+      // console.log(args)
+      // args.name = hero name
+      if (args.name) {
+        let results = await getEndpoint(`players/${parent.playerName}/matches/heroes`)
+        results = results.filter(match => match.match_id === parent.id)
+        const heroes = results[0].heroes
+        if (heroes.includes(args.name)) {
+          // pass matchid, hero, and player to child Hero
+          return [
+            {
+              name: args.name,
+              playerName: parent.playerName,
+              matchId: parent.id
+            }
+          ]
+        } else {
+          throw new SyntaxError(`${parent.playerName} did not play hero ${args.name} in match ${parent.id}`)
+        }
+      } else {
+        let results = await getEndpoint(`players/${parent.playerName}/matches/heroes`)
+        results = results.filter(match => match.match_id === parent.id)
+
+        const heroes = []
+        for (const hero of results[0].heroes) {
+          // pass matchid, hero, and player to child Hero
+          heroObj = {
+            name: hero,
+            playerName: parent.playerName,
+            matchId: parent.id
+          }
+          heroes.push(heroObj)
+        }
+        return heroes
+      }
+    }
+  },
   Hero: {
-    async name(matchId) {
-      console.log(`hero matchid: ${matchId}`)
-    },
-    async stats(matchId) {
-      console.log(`stats matchid: ${matchId}`)
+    async stats(parent, args) {
+      const playerName = parent.playerName
+      const heroName = parent.name
+      const matchId = parent.matchId
+
+      // TODO: figure out how to integrate stat_name filtering
+      // stat_name is args.name
+      if (args.name) {
+        console.log(parent)
+      } else {
+        const rawResult = await getEndpoint(`players/${playerName}/heroes/${heroName}?match_ids=${matchId}`)
+
+        const keys = Object.keys(rawResult)
+        const values = Object.values(rawResult)
+
+        formattedResult = []
+        for (let i = 0; i < keys.length; i++) {
+          formattedResult.push({
+            statName: keys[i],
+            statAmount: values[i]
+          })
+        }
+        return formattedResult
+      }
     }
   }
 }

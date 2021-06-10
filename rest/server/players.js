@@ -223,47 +223,51 @@ playersRouter.get('/:player/matches', validatePlayer, async (req, res) => {
   }
 })
 
-playersRouter.get('/:player/matches/:matchId', validateMatchIdParams, async (req, res) => {
-  const { player, matchId } = req.params
-  let heroesPlayed = await selectQuery(
-    `${player}-${matchId}-unique-heroes`,
-    'hero',
-    true,
-    'player_stats',
-    [
-      ['lower(player) = ', player.toLowerCase()],
-      ['match_id = ', matchId, 'AND']
-    ])
-  heroesPlayed = heroesPlayed.map((element) => Object.values(element)[0])
+// FIXME depreciate this endpoint
+// playersRouter.get('/:player/matches/:matchId', validateMatchIdParams, async (req, res) => {
+//   const { player, matchId } = req.params
+//   let heroesPlayed = await selectQuery(
+//     `${player}-${matchId}-unique-heroes`,
+//     'hero',
+//     true,
+//     'player_stats',
+//     [
+//       ['lower(player) = ', player.toLowerCase()],
+//       ['match_id = ', matchId, 'AND']
+//     ])
+//   heroesPlayed = heroesPlayed.map((element) => Object.values(element)[0])
 
-  if (heroesPlayed.length === 0) {
-    res.status(404).send(`Player ${player} did not participate in match of ID ${matchId}`)
-    return
-  }
+//   if (heroesPlayed.length === 0) {
+//     res.status(404).send(`Player ${player} did not participate in match of ID ${matchId}`)
+//     return
+//   }
 
-  const heroStats = {}
+//   const heroStats = []
 
-  for (const hero of heroesPlayed) {
-    const stats = await selectQuery(
-      `${player}-${matchId}-${hero}-stats`,
-      'stat_name, SUM(stat_amount) AS stat_amount',
-      false,
-      'player_stats',
-      [
-        ['lower(player) = ', player.toLowerCase()],
-        ['match_id = ', matchId, 'AND'],
-        ['hero = ', hero, 'AND']
-      ],
-      'stat_name')
-    const formattedMatchStat = {}
-    for (const stat of stats) {
-      formattedMatchStat[stat.stat_name] = stat.stat_amount
-    }
-    heroStats[hero] = formattedMatchStat
-  }
-
-  res.send(heroStats)
-})
+//   for (const hero of heroesPlayed) {
+//     const stats = await selectQuery(
+//       `${player}-${matchId}-${hero}-stats`,
+//       'stat_name, SUM(stat_amount) AS stat_amount',
+//       false,
+//       'player_stats',
+//       [
+//         ['lower(player) = ', player.toLowerCase()],
+//         ['match_id = ', matchId, 'AND'],
+//         ['hero = ', hero, 'AND']
+//       ],
+//       'stat_name')
+//     const formattedMatchStat = {}
+//     for (const stat of stats) {
+//       formattedMatchStat[stat.stat_name] = stat.stat_amount
+//     }
+//     const heroObject = {
+//       name: hero,
+//       stats: formattedMatchStat
+//     }
+//     heroStats.push(heroObject)
+//   }
+//   res.send(heroStats)
+// })
 
 playersRouter.get('/heroes', async (req, res) => {
   let heroes = await selectQuery(
