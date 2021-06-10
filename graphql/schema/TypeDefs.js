@@ -6,20 +6,17 @@ const typeDefs = gql`
     name: String!
     team: [String!]!
     year: [Int!]!
-    matches: [PlayerMatch]
+    matches(id: Int): [PlayerMatch!]
   }
 
   type PlayerMatch {
-    id: ID!
-    performance: PlayerPerformance
+    id(year: Int): ID!
+    hero(name: String): Hero
   }
 
-  type PlayerPerformance {
-    stats: [HeroStats]
-  }
-
-  type HeroStats {
-    stat: Float
+  type Hero {
+    name: String!
+    stats: [Float!]
   }
 
   # Queries

@@ -162,16 +162,14 @@ playersRouter.get('/:player', validatePlayer, async (req, res) => {
 
   if (!req.query.year) {
     const matches = await selectQuery(
-      `${player}-match-list`,
-      'MAX(player_stats.player) AS name, ARRAY_AGG(DISTINCT players_teams.team) AS team, ARRAY_AGG(DISTINCT player_stats.year) AS year, ARRAY_AGG(DISTINCT match_id) AS matches',
+      `${player}-details-overall`,
+      'MAX(player) AS name, ARRAY_AGG(year) as year, ARRAY_AGG(DISTINCT team) as team',
       false,
-      'player_stats',
+      'players_teams',
       [
-        [` INNER JOIN players_teams
-        ON lower(player_stats.player) = lower(players_teams.player) AND player_stats.year = players_teams.year
-        WHERE lower(player_stats.player) = '${player.toLowerCase()}'`]
+        ['player = ', player]
       ],
-      'player_stats.player'
+      'player'
     )
 
     if (matches.length > 0) {
@@ -179,16 +177,15 @@ playersRouter.get('/:player', validatePlayer, async (req, res) => {
     }
   } else {
     const matches = await selectQuery(
-      `${player}-match-list-${req.query.year}`,
-      'MAX(player_stats.player) AS name, ARRAY_AGG(DISTINCT players_teams.team) AS team, ARRAY_AGG(DISTINCT player_stats.year) as year, ARRAY_AGG(DISTINCT match_id) AS matches',
+      `${player}-details-${req.query.year}`,
+      'MAX(player) AS name, ARRAY_AGG(year) as year, ARRAY_AGG(DISTINCT team) as team',
       false,
-      'player_stats',
+      'players_teams',
       [
-        [` INNER JOIN players_teams
-        ON lower(player_stats.player) = lower(players_teams.player) AND player_stats.year = players_teams.year
-        WHERE lower(player_stats.player) = '${player.toLowerCase()}' AND player_stats.year = ${req.query.year}`]
+        ['player = ', player],
+        ['year = ', req.query.year, 'AND']
       ],
-      'player_stats.player'
+      'player'
     )
 
     if (matches.length > 0) {
@@ -197,7 +194,36 @@ playersRouter.get('/:player', validatePlayer, async (req, res) => {
   }
 })
 
-playersRouter.get('/:player/:matchId', validateMatchIdParams, async (req, res) => {
+playersRouter.get('/:player/matches', validatePlayer, async (req, res) => {
+  const { player } = req.params
+
+  if (!req.query.year) {
+    const matches = await selectQuery(`${player}-matches-overall`,
+      'match_id as id',
+      true,
+      'player_stats',
+      [
+        ['player = ', player]
+      ])
+    res.send(matches)
+  } else {
+    const matches = await selectQuery(`${player}-matches-overall`,
+      'match_id as id',
+      true,
+      'player_stats',
+      [
+        ['player = ', player],
+        ['year = ', req.query.year, 'AND']
+      ])
+    if (matches.length > 0) {
+      res.send(matches)
+    } else {
+      res.status(404).send(`${player} has not played any matches in ${req.query.year}`)
+    }
+  }
+})
+
+playersRouter.get('/:player/matches/:matchId', validateMatchIdParams, async (req, res) => {
   const { player, matchId } = req.params
   let heroesPlayed = await selectQuery(
     `${player}-${matchId}-unique-heroes`,

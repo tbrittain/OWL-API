@@ -8,26 +8,42 @@ const getEndpoint = async (relativeUrl) => {
 
 const resolvers = {
   Query: {
-    getAllPlayers(parent, args, context, info) {
+    async getAllPlayers(parent, args, context, info) {
       if (args.year) {
-        return getEndpoint(`/players?year=${args.year}`)
+        return await getEndpoint(`players?year=${args.year}`)
       } else {
-        return getEndpoint(`/players`)
+        return await getEndpoint(`players`)
       }
     },
-    getPlayer(parent, args, context, info) {
+    async getPlayer(parent, args, context, info) {
       if (args.year) {
-        return getEndpoint(`/players/${args.player}?year=${args.year}`)
+        const results = await getEndpoint(`players/${args.player}?year=${args.year}`)
+        return results[0]
       } else {
-        return getEndpoint(`/players/${args.player}`)
+        const results = await getEndpoint(`players/${args.player}`)
+        return results[0]
       }
     }
   },
-  PlayerPerformance(parent, args, context, info) {
-
+  Player: {
+    async matches(player, args) {
+      if (args.id) {
+        let results = await getEndpoint(`players/${player.name}/matches`)
+        results = results.filter(match => match.id === args.id)
+        return results
+      } else {
+        const results = await getEndpoint(`players/${player.name}/matches`)
+        return results
+      }
+    }
   },
-  HeroStats(parent, args, context, info) {
-
+  Hero: {
+    async name(matchId) {
+      console.log(`hero matchid: ${matchId}`)
+    },
+    async stats(matchId) {
+      console.log(`stats matchid: ${matchId}`)
+    }
   }
 }
 
