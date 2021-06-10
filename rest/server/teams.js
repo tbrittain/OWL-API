@@ -4,15 +4,14 @@ const { selectQuery } = require('./db')
 
 teamsRouter.get('/', async (req, res) => {
   const teams = await selectQuery(
-    'team-names',
-    'attacker',
+    'teams-years',
+    'team AS name, ARRAY_AGG(DISTINCT year) AS year',
     true,
-    'map_stats',
+    'players_teams',
     null,
-    null,
-    'attacker ASC'
+    'team'
   )
-  res.send(teams.map((element) => Object.values(element)[0]))
+  res.send(teams)
 })
 
 const validateTeamName = async (req, res, next) => {

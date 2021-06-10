@@ -73,6 +73,8 @@ matchesRouter.get('/', async (req, res) => {
   }
 })
 
+// TODO: fix this endpoint to be more compliant with the GraphQL endpoint
+// may want to separate it into a couple or several endpoints to query games within matches, and rounds within games
 matchesRouter.get('/:matchId', validateMatchIdParams, async (req, res) => {
   const { matchId } = req.params
   let overallResults = await selectQuery(
