@@ -23,6 +23,12 @@ const resolvers = {
         const results = await getEndpoint(`players/${args.player}`)
         return results[0]
       }
+    },
+    async getTeam(parent, args, context, info) {
+      const teamName = args.name
+      let results = await getEndpoint(`teams/`)
+      results = results.filter(team => team.name === teamName)
+      return results[0]
     }
   },
   Player: {
@@ -109,6 +115,22 @@ const resolvers = {
         }
         return formattedResult
       }
+    }
+  },
+  Team: {
+    async lineup(parent, args) {
+      const teamName = parent.name
+      if (args.year) {
+        console.log(parent)
+      } else {
+        const results = await getEndpoint(`teams/${teamName}`)
+        return results
+      }
+    }
+  },
+  TeamLineup: {
+    async matches(parent, args) {
+      
     }
   }
 }

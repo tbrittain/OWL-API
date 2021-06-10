@@ -4,12 +4,10 @@ const { selectQuery } = require('./db')
 
 teamsRouter.get('/', async (req, res) => {
   const teams = await selectQuery(
-    'teams-years',
-    'team AS name, ARRAY_AGG(DISTINCT year) AS year',
+    'teams-names',
+    'team as name',
     true,
-    'players_teams',
-    null,
-    'team'
+    'players_teams'
   )
   res.send(teams)
 })
@@ -64,51 +62,78 @@ const validateDualTeams = async (req, res, next) => {
 }
 
 teamsRouter.get('/:team', validateTeamName, async (req, res) => {
-  const { team } = req.params
+  let { team } = req.params
+  team = team.toLowerCase()
 
-  if (!req.query.year) {
-    const lineup = await selectQuery(
-      `team-lineup-${team}`,
-      'player, COUNT(year) AS seasons, ARRAY_AGG(year) AS years',
-      false,
-      'players_teams',
-      [['lower(team) = ', team.toLowerCase()]],
-      'player',
-      'seasons DESC'
-    )
+  let teamYears = await selectQuery(
+    `${team}-seasons-list`,
+    'year',
+    true,
+    'players_teams',
+    [
+      ['lower(team) = ', team]
+    ])
 
-    if (lineup.length > 0) {
-      res.send(lineup)
+  teamYears = teamYears.map((element) => Object.values(element)[0])
+  const formattedResult = []
+
+  if (teamYears.includes(req.query.year)) {
+    teamYears = req.query.year
+  }
+
+  for (const year of teamYears) {
+    const yearObj = {
+      year: year
     }
-  } else {
-    const lineup = await selectQuery(
-      `team-lineup-${team}-${req.query.year}`,
+    // get players of this team from this year to iterate over
+    let teamPlayersFromYear = await selectQuery(
+      `${team}-lineup-${year}`,
       'player',
       false,
       'players_teams',
       [
-        ['lower(team) = ', team.toLowerCase()],
-        ['year = ', req.query.year, 'AND']
-      ],
-      null,
-      'player ASC'
-    )
+        ['lower(team) = ', team],
+        ['year = ', year, 'AND']
+      ])
+    teamPlayersFromYear = teamPlayersFromYear.map((element) => Object.values(element)[0])
 
-    if (lineup.length > 0) {
-      res.send(lineup.map((element) => Object.values(element)[0]))
-    } else {
-      res.status(404).send()
+    const individualPlayerList = []
+    for (const player of teamPlayersFromYear) {
+      const playerDetailsFromYear = await selectQuery(
+        `${player}-details-overall`,
+        'MAX(player) AS name, ARRAY_AGG(year) as year, ARRAY_AGG(DISTINCT team) as team',
+        false,
+        'players_teams',
+        [
+          ['player = ', player]
+        ],
+        'player'
+      )
+      individualPlayerList.push(playerDetailsFromYear[0])
     }
+    yearObj.players = individualPlayerList
+    formattedResult.push(yearObj)
   }
+  res.send(formattedResult)
 })
 
 teamsRouter.get('/:team/matches', validateTeamName, async (req, res) => {
-  const years = [2018, 2019, 2020, 2021]
   const { team } = req.params
+
+  let teamYears = await selectQuery(
+    `${team}-seasons-list`,
+    'year',
+    true,
+    'players_teams',
+    [
+      ['lower(team) = ', team]
+    ])
+
+  teamYears = teamYears.map((element) => Object.values(element)[0])
 
   if (!req.query.year) {
     const results = {}
-    for (const year of years) {
+    for (const year of teamYears) {
       const yearlyMatches = await selectQuery(
         `${team}-${year}-match-history`,
         `stage, 

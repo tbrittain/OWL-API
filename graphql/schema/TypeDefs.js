@@ -30,7 +30,7 @@ const typeDefs = gql`
   # Team Types
   type Team {
     name: String!
-    lineup: TeamLineup
+    lineup(year: Int): [TeamLineup!]!
   }
 
   type TeamLineup {
@@ -72,10 +72,12 @@ const typeDefs = gql`
   }
 
   # Queries
+  # TODO: getTeams and getMatch queries?
+  # TODO: maybe remove the year parameter from getPlayer
   type Query {
     getAllPlayers(year: Int): [Player!]!
     getPlayer(year: Int, player: String!): Player!
-    getTeam(year: Int): Team!
+    getTeam(name: String!): Team!
   }
 `
 
