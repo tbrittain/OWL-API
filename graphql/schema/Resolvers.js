@@ -6,6 +6,8 @@ const getEndpoint = async (relativeUrl) => {
   return response.data
 }
 
+// TODO: implement some sort of caching responses, possibly using some sort of embedded db
+
 const resolvers = {
   Query: {
     async getAllPlayers(parent, args, context, info) {
@@ -58,10 +60,10 @@ const resolvers = {
     async hero(parent, args) {
       // args.name = hero name
       if (args.name) {
-        // FIXME: need an endpoint to get the heroes from the individual match, because this one takes a long time
-        let results = await getEndpoint(`players/${parent.playerName}/matches/heroes`)
+        const results = await getEndpoint(`players/${parent.playerName}/matches/heroes?match_ids=${parent.id}`)
+
         // todo handle snake_case... i thought that middleware handled it but no
-        results = results.filter(match => match.match_id === parent.id)
+        // results = results.filter(match => match.match_id === parent.id)
         const heroes = results[0].heroes
         if (heroes.includes(args.name)) {
           // pass matchid, hero, and player to child Hero
@@ -76,8 +78,7 @@ const resolvers = {
           throw new SyntaxError(`${parent.playerName} did not play hero ${args.name} in match ${parent.id}`)
         }
       } else {
-        let results = await getEndpoint(`players/${parent.playerName}/matches/heroes`)
-        results = results.filter(match => match.match_id === parent.id)
+        let results = await getEndpoint(`players/${parent.playerName}/matches/heroes?match_ids=${parent.id}`)
 
         const heroes = []
         for (const hero of results[0].heroes) {
@@ -94,7 +95,6 @@ const resolvers = {
     }
   },
   Hero: {
-    // FIXME PREVENT THIS FROM BEING CALLED WHEN NESTED TOO DEEP BECAUSE IT WILL FRY YOUR CPU
     async stats(parent, args) {
       const playerName = parent.playerName
       const heroName = parent.name

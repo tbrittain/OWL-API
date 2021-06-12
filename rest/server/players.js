@@ -158,7 +158,8 @@ const validateMatchIdParams = async (req, res, next) => {
 }
 
 playersRouter.get('/:player', validatePlayer, async (req, res) => {
-  const { player } = req.params
+  let { player } = req.params
+  player = player.toLowerCase()
 
   if (!req.query.year) {
     const matches = await selectQuery(
@@ -167,7 +168,7 @@ playersRouter.get('/:player', validatePlayer, async (req, res) => {
       false,
       'players_teams',
       [
-        ['player = ', player]
+        ['lower(player) = ', player]
       ],
       'player'
     )
@@ -182,7 +183,7 @@ playersRouter.get('/:player', validatePlayer, async (req, res) => {
       false,
       'players_teams',
       [
-        ['player = ', player],
+        ['lower(player) = ', player],
         ['year = ', req.query.year, 'AND']
       ],
       'player'
@@ -286,8 +287,39 @@ playersRouter.get('/heroes', async (req, res) => {
 playersRouter.get(
   '/:player/matches/heroes',
   validatePlayer,
+  validateMatchIdsQuery,
   async (req, res) => {
     const { player } = req.params
+
+    if (req.query.match_ids) {
+      const matchIds = req.query.match_ids.split(',')
+      if (matchIds.length > 1) {
+        res.status(400).send('This endpoint currently only supports retrieval of heroes from 1 match')
+        return
+      } else if (matchIds.length === 0) {
+        res.status(400).send('No match ID provided')
+        return
+      } else {
+        const heroes = await selectQuery(
+          `${player}-match-${matchIds[0]}-heroes`,
+          'match_id, ARRAY_AGG(DISTINCT hero) AS heroes',
+          false,
+          'player_stats',
+          [
+            ['lower(player) = ', player.toLowerCase()],
+            ['match_id = ', matchIds[0], 'AND']
+          ],
+          'match_id'
+        )
+        if (heroes.length > 0) {
+          res.send(heroes)
+          return
+        } else {
+          res.status(404).send(`Player ${player} did not participate in match ID ${matchIds[0]}`)
+          return
+        }
+      }
+    }
 
     if (!req.query.year) {
       const heroes = await selectQuery(

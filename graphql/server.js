@@ -2,6 +2,7 @@ const express = require('express')
 const cors = require('cors')
 const { ApolloServer } = require('apollo-server-express')
 const snakeCase = require('lodash.snakecase')
+const { createComplexityLimitRule } = require('graphql-validation-complexity')
 
 // express as middleware
 const port = process.env.port || 4001
@@ -16,9 +17,19 @@ const snakeCaseFieldResolver = (source, args, contextValue, info) => {
   return source[snakeCase(info.fieldName)]
 }
 
+const ComplexityLimitRule = createComplexityLimitRule(1000, {
+  onCost: (cost) => {
+    console.log('Query cost:', cost);
+  },
+  formatErrorMessage: (cost) =>
+    `Query with cost ${cost} exceeds complexity limit`,
+})
+
 // apollo server
+// TODO: work on the fieldresolver
 const server = new ApolloServer({
   fieldResolver: snakeCaseFieldResolver,
+  validationRules: [ComplexityLimitRule],
   typeDefs, 
   resolvers
 })
