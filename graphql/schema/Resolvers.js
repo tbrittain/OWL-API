@@ -138,6 +138,19 @@ const resolvers = {
         teamYear.teamName = teamName
       }
       return results
+    },
+    // need to reproduce this logic for TeamMatch details
+    async match(parent, args) {
+      const matchId = args.id
+      const teamName = parent.name
+      // TODO: hit endpoint /matches/${matchId} and validate that team participated in the match
+      let results = await getEndpoint(`matches/${matchId}`)
+      const teams = results.teams
+      if (!teams.includes(teamName)) {
+        throw new SyntaxError(`${teamName} did not participate in match ID ${matchId}`)
+      }
+
+      console.log(results)
     }
   },
   TeamByYear: {
@@ -152,8 +165,10 @@ const resolvers = {
       if (args.type) {
         results = results.filter(element => element.type === args.type)
       }
-
+      console.log(parent)
+      console.log(args)
       // below resolves TeamMatch.id, but an additional request may be necessary to resolve the remaining fields
+      // consider making a TeamMatchDetails
       for (const result of results) {
         formattedMatches = []
         const matchArray = result.matches
@@ -168,7 +183,9 @@ const resolvers = {
     }
   },
   TeamMatch: {
-
+    async details(parent, args) {
+      console.log(parent)
+    }
   }
 }
 

@@ -1,6 +1,5 @@
 const { gql } = require("apollo-server-express")
 
-// TODO: team queries
 
 const typeDefs = gql`
   # Types
@@ -33,6 +32,7 @@ const typeDefs = gql`
   type Team {
     name: String!
     byYear(year: Int): [TeamByYear!]!
+    match(id: Int!): MatchDetails!
   }
 
   type TeamByYear {
@@ -44,17 +44,22 @@ const typeDefs = gql`
   type Stage {
     stage: Int!
     type: String!
-    matches: [TeamMatch!]!
+    matches(id: Int): [TeamMatch!]!
   }
 
   # Team Match Types
   type TeamMatch {
     id: ID!
+    details: MatchDetails!
+  }
+
+  # TODO: Could make winner and teams TeamType instead of string
+  type MatchDetails {
     year: Int!
     roundStartTime: String!
     winner: String!
     teams: [String!]!
-    games: [Game]
+    games: [Game!]!
   }
 
   type Game {
