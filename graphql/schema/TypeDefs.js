@@ -4,6 +4,7 @@ const { gql } = require("apollo-server-express")
 
 const typeDefs = gql`
   # Types
+  # =========================
   # Player Types
   type Player {
     name: String!
@@ -19,7 +20,7 @@ const typeDefs = gql`
 
   type Hero {
     name: String!
-    stats: [HeroStats!]
+    stats: [HeroStats!]!
   }
 
   type HeroStats {
@@ -27,16 +28,23 @@ const typeDefs = gql`
     statAmount: Float!
   }
 
+  # =========================
   # Team Types
   type Team {
     name: String!
-    lineup(year: Int): [TeamLineup!]!
+    byYear(year: Int): [TeamByYear!]!
   }
 
-  type TeamLineup {
+  type TeamByYear {
     year: Int!
     players: [Player!]!
-    matches: [TeamMatch]
+    stages(stage: Int, type: String): [Stage!]!
+  }
+
+  type Stage {
+    stage: Int!
+    type: String!
+    matches: [TeamMatch!]!
   }
 
   # Team Match Types

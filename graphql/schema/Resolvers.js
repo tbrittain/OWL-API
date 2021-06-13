@@ -6,6 +6,11 @@ const getEndpoint = async (relativeUrl) => {
   return response.data
 }
 
+const renameKey = async (obj, oldKey, newKey) => {
+  obj[newKey] = obj[oldKey]
+  delete obj[oldKey]
+}
+
 // TODO: implement some sort of caching responses, possibly using some sort of embedded db
 
 const resolvers = {
@@ -27,9 +32,10 @@ const resolvers = {
       }
     },
     async getTeam(parent, args, context, info) {
-      const teamName = args.name
+      let teamName = args.name
+      teamName = teamName.toLowerCase()
       let results = await getEndpoint(`teams/`)
-      results = results.filter(team => team.name === teamName)
+      results = results.filter(team => team.name.toLowerCase() === teamName)
       return results[0]
     }
   },
@@ -122,21 +128,47 @@ const resolvers = {
     }
   },
   Team: {
-    async lineup(parent, args) {
+    async byYear(parent, args) {
       const teamName = parent.name
+      let results = await getEndpoint(`teams/${teamName}`)
       if (args.year) {
-        console.log(parent)
-      } else {
-        const results = await getEndpoint(`teams/${teamName}`)
-        console.log(results)
-        return results
+        results = results.filter(element => element.year === args.year)
       }
+      for (const teamYear of results) {
+        teamYear.teamName = teamName
+      }
+      return results
     }
   },
-  TeamLineup: {
-    async matches(parent, args) {
+  TeamByYear: {
+    async stages(parent, args) {
+      const teamName = parent.teamName
+      const year = parent.year
+      // will accept args.number = stage number (integer) and args.type = stage type (string)
+      let results = await getEndpoint(`teams/${teamName}/matches?year=${year}`)
+      if (args.stage) {
+        results = results.filter(element => element.stage === args.stage)
+      }
+      if (args.type) {
+        results = results.filter(element => element.type === args.type)
+      }
 
+      // below resolves TeamMatch.id, but an additional request may be necessary to resolve the remaining fields
+      for (const result of results) {
+        formattedMatches = []
+        const matchArray = result.matches
+        for (const matchId of matchArray) {
+          formattedMatches.push({
+            id: matchId
+          })
+        }
+        result.matches = formattedMatches
+      }
+      return results
     }
+  },
+  TeamMatch: {
+
   }
 }
 

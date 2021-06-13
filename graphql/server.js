@@ -17,7 +17,7 @@ const snakeCaseFieldResolver = (source, args, contextValue, info) => {
   return source[snakeCase(info.fieldName)]
 }
 
-const ComplexityLimitRule = createComplexityLimitRule(1000, {
+const ComplexityLimitRule = createComplexityLimitRule(1500, {
   onCost: (cost) => {
     console.log('Query cost:', cost);
   },

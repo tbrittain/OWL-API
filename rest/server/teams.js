@@ -126,13 +126,13 @@ teamsRouter.get('/:team/matches', validateTeamName, async (req, res) => {
     true,
     'players_teams',
     [
-      ['lower(team) = ', team]
+      ['lower(team) = ', team.toLowerCase()]
     ])
 
   teamYears = teamYears.map((element) => Object.values(element)[0])
 
   if (!req.query.year) {
-    const results = {}
+    const results = []
     for (const year of teamYears) {
       const yearlyMatches = await selectQuery(
         `${team}-${year}-match-history`,
@@ -140,7 +140,7 @@ teamsRouter.get('/:team/matches', validateTeamName, async (req, res) => {
       CASE WHEN playoffs IS NULL AND postseason IS NULL THEN 'Regular Season' 
       WHEN playoffs = 'true' AND postseason IS NULL THEN 'Stage Playoffs' 
       WHEN playoffs = 'true' AND postseason = 'true' THEN 'Postseason' 
-      END AS stage_type,
+      END AS type,
       ARRAY_AGG(DISTINCT match_id) AS matches`,
         false,
         'map_stats',
@@ -156,12 +156,12 @@ teamsRouter.get('/:team/matches', validateTeamName, async (req, res) => {
     res.send(results)
   } else {
     const results = await selectQuery(
-      `${team}-match-history`,
+      `${team}-${req.query.year}-match-history`,
       `stage, 
     CASE WHEN playoffs IS NULL AND postseason IS NULL THEN 'Regular Season' 
     WHEN playoffs = 'true' AND postseason IS NULL THEN 'Stage Playoffs' 
     WHEN playoffs = 'true' AND postseason = 'true' THEN 'Postseason' 
-    END AS stage_type,
+    END AS type,
     ARRAY_AGG(DISTINCT match_id) AS matches`,
       false,
       'map_stats',
