@@ -44,7 +44,7 @@ const typeDefs = gql`
   type Stage {
     stage: Int!
     type: String!
-    matches(id: Int): [TeamMatch!]!
+    matches: [TeamMatch!]!
   }
 
   # Team Match Types
