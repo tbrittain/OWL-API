@@ -3,6 +3,7 @@ const apiRouter = express.Router()
 
 const validateYear = (req, res, next) => {
   if (req.query.year) {
+    // TODO: another endpoint dynamically pulls years instead of hardcoding
     const years = [2018, 2019, 2020, 2021]
     if (!years.includes(Number(req.query.year))) {
       res

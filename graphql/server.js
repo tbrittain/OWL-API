@@ -26,7 +26,6 @@ const ComplexityLimitRule = createComplexityLimitRule(2500, {
 })
 
 // apollo server
-// TODO: work on the fieldresolver
 const server = new ApolloServer({
   fieldResolver: snakeCaseFieldResolver,
   validationRules: [ComplexityLimitRule],

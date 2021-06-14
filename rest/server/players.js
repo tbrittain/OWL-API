@@ -1,6 +1,7 @@
 const express = require('express')
 const playersRouter = express.Router({ mergeParams: true })
 const { selectQuery } = require('./db')
+const escape = require('escape-html')
 
 playersRouter.get('/', async (req, res) => {
   if (!req.query.year) {
@@ -98,7 +99,7 @@ const validateMatchIdsQuery = async (req, res, next) => {
       }
     }
     if (invalid.length > 0) {
-      res.status(400).send(`Invalid match ID provided: ${invalid}`)
+      res.status(400).send(`Invalid match ID provided: ${escape(invalid)}`)
     } else {
       next()
     }
@@ -129,7 +130,7 @@ const validateStatNamesQuery = async (req, res, next) => {
       }
     }
     if (invalid.length > 0) {
-      res.status(400).send(`Invalid stat name provided: ${invalid}`)
+      res.status(400).send(`Invalid stat name provided: ${escape(invalid)}`)
     } else {
       next()
     }
@@ -200,7 +201,7 @@ playersRouter.get('/:player/matches', validatePlayer, async (req, res) => {
     if (matches.length > 0) {
       res.send(matches)
     } else {
-      res.status(404).send(`${player} has not played any matches in ${req.query.year}`)
+      res.status(404).send(`${escape(player)} has not played any matches in ${req.query.year}`)
     }
   }
 })
@@ -250,7 +251,7 @@ playersRouter.get(
           res.send(heroes)
           return
         } else {
-          res.status(404).send(`Player ${player} did not participate in match ID ${matchIds[0]}`)
+          res.status(404).send(`Player ${escape(player)} did not participate in match ID ${escape(matchIds[0])}`)
           return
         }
       }

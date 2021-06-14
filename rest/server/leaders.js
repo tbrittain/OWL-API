@@ -1,6 +1,7 @@
 const express = require('express')
 const leadersRouter = express.Router({ mergeParams: true })
 const { selectQuery } = require('./db')
+const escape = require('escape-html')
 
 leadersRouter.get('/matches', async (req, res) => {
   let resultLimit = null
@@ -55,7 +56,7 @@ const validateStatNamesParams = async (req, res, next) => {
   )
 
   if (!existingStatNames.includes(statName.toLowerCase())) {
-    res.status(400).send(`Invalid stat name provided: ${statName}`)
+    res.status(400).send(`Invalid stat name provided: ${escape(statName)}`)
   } else {
     next()
   }
@@ -99,11 +100,11 @@ leadersRouter.get(
         try {
           resultLimit = Number(req.query.limit)
         } catch (e) {
-          res.status(400).send(`Invalid result limit: ${req.query.limit}`)
+          res.status(400).send(`Invalid result limit: ${escape(req.query.limit)}`)
           return
         }
       } else {
-        res.status(400).send(`Invalid result limit: ${req.query.limit}`)
+        res.status(400).send(`Invalid result limit: ${escape(req.query.limit)}`)
         return
       }
     }
@@ -220,11 +221,11 @@ leadersRouter.get(
         try {
           resultLimit = Number(req.query.limit)
         } catch (e) {
-          res.status(400).send(`Invalid result limit: ${req.query.limit}`)
+          res.status(400).send(`Invalid result limit: ${escape(req.query.limit)}`)
           return
         }
       } else {
-        res.status(400).send(`Invalid result limit: ${req.query.limit}`)
+        res.status(400).send(`Invalid result limit: ${escape(req.query.limit)}`)
         return
       }
     }
@@ -337,12 +338,12 @@ leadersRouter.get(
       try {
         resultLimit = Number(req.query.limit)
       } catch (e) {
-        res.status(400).send(`Invalid result limit: ${req.query.limit}`)
+        res.status(400).send(`Invalid result limit: ${escape(req.query.limit)}`)
         return
       }
       console.log('No error from typechecking limit, continuing...')
       if (resultLimit > 100) {
-        res.status(400).send(`Invalid result limit: ${req.query.limit}`)
+        res.status(400).send(`Invalid result limit: ${escape(req.query.limit)}`)
         return
       }
       console.log(`Limit check passed: limit = ${resultLimit}`)
@@ -358,7 +359,7 @@ leadersRouter.get(
       } catch (e) {
         res
           .status(400)
-          .send(`Invalid minimum number of matches: ${req.query.min_matches}`)
+          .send(`Invalid minimum number of matches: ${escape(req.query.min_matches)}`)
         return
       }
     }

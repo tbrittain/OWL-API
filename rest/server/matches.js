@@ -1,6 +1,7 @@
 const express = require('express')
 const matchesRouter = express.Router({ mergeParams: true })
 const { selectQuery } = require('./db')
+const escape = require('escape-html')
 
 matchesRouter.get('/maps', async (req, res) => {
   const maps = await selectQuery(
@@ -26,7 +27,7 @@ const validateMatchIdParams = async (req, res, next) => {
     (element) => Object.values(element)[0]
   )
   if (!existingMatchIds.includes(Number(matchId))) {
-    res.status(400).send(`Invalid match ID provided: ${matchId}`)
+    res.status(400).send(`Invalid match ID provided: ${escape(matchId)}`)
   } else {
     next()
   }

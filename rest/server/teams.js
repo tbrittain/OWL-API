@@ -1,6 +1,7 @@
 const express = require('express')
 const teamsRouter = express.Router({ mergeParams: true })
 const { selectQuery } = require('./db')
+const escape = require('escape-html')
 
 teamsRouter.get('/', async (req, res) => {
   const teams = await selectQuery(
@@ -27,12 +28,13 @@ const validateTeamName = async (req, res, next) => {
   teams = teams.map((element) => Object.values(element)[0])
 
   if (!teams.includes(team.toLowerCase())) {
-    res.status(400).send(`Invalid team name: ${team}`)
+    res.status(400).send(`Invalid team name: ${escape(team)}`)
   } else {
     next()
   }
 }
 
+// TODO: complete this?
 const validateDualTeams = async (req, res, next) => {
   const { teamOne, teamTwo } = req.params
 
