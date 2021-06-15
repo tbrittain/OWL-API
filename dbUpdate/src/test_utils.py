@@ -10,9 +10,18 @@ import pandas as pd
 
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if config.environment == "dev":
-    load_dotenv(f'{base_dir}\\dev.env')
+    load_dotenv(f'{base_dir}/dev.env')
 elif config.environment == "prod":
-    load_dotenv(f'{base_dir}\\prod.env')
+    test_db_user = os.getenv("DB_USER")
+    test_db_pass = os.getenv("DB_PASS")
+    test_db_name = os.getenv("DB_NAME")
+    test_db_host = os.getenv("DB_HOST")
+    test_db_port = os.getenv("DB_PORT")
+    if None in [test_db_user, test_db_pass, test_db_name, test_db_host, test_db_port]:
+        print("Invalid environment setting in docker-compose.yml, exiting")
+        exit()
+elif config.environment == "prod_local":
+    load_dotenv(f'{base_dir}/prod_local.env')
 else:
     print("Invalid environment setting, exiting")
     exit()
