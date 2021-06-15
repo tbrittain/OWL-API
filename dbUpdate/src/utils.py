@@ -70,6 +70,7 @@ class DatabaseConnection:
 
         return rows
 
+    # TODO: return a default timestamp (like 1/1/70) if no rows are found
     def get_most_recent_match_timestamp(self) -> datetime.datetime:
         """Pulls the most recent match timestamp from the database"""
         cur = self.conn.cursor()
