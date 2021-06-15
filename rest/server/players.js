@@ -201,7 +201,7 @@ playersRouter.get('/:player/matches', validatePlayer, async (req, res) => {
     if (matches.length > 0) {
       res.send(matches)
     } else {
-      res.status(404).send(`${escape(player)} has not played any matches in ${req.query.year}`)
+      res.status(404).send(`${escape(player)} has not played any matches in ${escape(req.query.year)}`)
     }
   }
 })
@@ -398,7 +398,7 @@ playersRouter.get(
         }
         res.send(formattedMatchStat)
       } else {
-        res.status(404).send(`${player} has not played any matches as ${hero}`)
+        res.status(404).send(`${escape(player)} has not played any matches as ${escape(hero)}`)
       }
     } else {
       let heroAvgStats = await selectQuery(
@@ -426,7 +426,7 @@ playersRouter.get(
         }
         res.send(formattedMatchStat)
       } else {
-        res.status(404).send(`${player} has not played any matches as ${hero}`)
+        res.status(404).send(`${escape(player)} has not played any matches as ${escape(hero)}`)
       }
     }
   }

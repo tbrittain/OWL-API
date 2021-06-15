@@ -1,12 +1,11 @@
 const { Pool } = require('pg')
-// hardcoded, could also use .env, and
-// pool would automatically use it
+
 const pool = new Pool({
-  user: 'root',
-  host: 'db',
-  database: 'root',
-  password: 'root',
-  port: 5432
+  user: process.env.POSTGRES_USER,
+  host: process.env.POSTGRES_HOST,
+  database: process.env.POSTGRES_DATABASE,
+  password: process.env.POSTGRES_PASSWORD,
+  port: process.env.POSTGRES_PORT
 })
 
 const selectQuery = async (
